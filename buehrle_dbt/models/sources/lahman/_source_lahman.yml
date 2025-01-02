@@ -1,0 +1,112 @@
+version: 2
+
+sources:
+  - name: lahman
+    tables:
+      - name: all_star_full
+        meta:
+          external_location: "read_csv('../data/lahman/AllStarFull.csv', sample_size=-1, all_varchar=true)"
+
+      - name: appearances
+        meta:
+          external_location: "read_csv('../data/lahman/Appearances.csv', sample_size=-1, all_varchar=true)"
+
+      - name: awards_managers
+        meta:
+          external_location: "read_csv('../data/lahman/AwardsManagers.csv', sample_size=-1, all_varchar=true)"
+
+      - name: awards_players
+        meta:
+          external_location: "read_csv('../data/lahman/AwardsPlayers.csv', sample_size=-1, all_varchar=true)"
+
+      - name: award_shares_managers
+        meta:
+          external_location: "read_csv('../data/lahman/AwardsShareManagers.csv', sample_size=-1, all_varchar=true)"
+
+      - name: award_shares_players
+        meta:
+          external_location: "read_csv('../data/lahman/AwardsSharePlayers.csv', sample_size=-1, all_varchar=true)"
+
+      - name: batting
+        meta:
+          external_location: "read_csv('../data/lahman/Batting.csv', sample_size=-1, all_varchar=true, names = ['playerID', 'yearID', 'stint', 'teamID', 'lgID', 'G', 'G_batting', 'AB', 'R', 'H', '_2B', '_3B', 'HR', 'RBI', 'SB', 'CS', 'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP', 'G_old'])"
+
+      - name: batting_post
+        meta:
+          external_location: "read_csv('../data/lahman/BattingPost.csv', sample_size=-1, all_varchar=true, names = ['yearID', 'round', 'playerID', 'teamID', 'lgID', 'G', 'AB', 'R', 'H', '_2B', '_3B', 'HR', 'RBI', 'SB', 'CS', 'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP'])"
+
+      - name: college_playing
+        meta:
+          external_location: "read_csv('../data/lahman/CollegePlaying.csv', sample_size=-1, all_varchar=true)"
+
+      - name: fielding
+        meta:
+          external_location: "read_csv('../data/lahman/Fielding.csv', sample_size=-1, all_varchar=true)"
+
+      - name: fielding_of
+        meta:
+          external_location: "read_csv('../data/lahman/FieldingOF.csv', sample_size=-1, all_varchar=true)"
+
+      - name: fielding_of_split
+        meta:
+          external_location: "read_csv('../data/lahman/FieldingOFsplit.csv', sample_size=-1, all_varchar=true)"
+
+      - name: fielding_post
+        meta:
+          external_location: "read_csv('../data/lahman/FieldingPost.csv', sample_size=-1, all_varchar=true)"
+
+      - name: franchises
+        meta:
+          external_location: "read_csv('../data/lahman/TeamsFranchises.csv', sample_size=-1, all_varchar=true)"
+
+      - name: hall_of_fame
+        meta:
+          external_location: "read_csv('../data/lahman/HallOfFame.csv', sample_size=-1, all_varchar=true)"
+
+      - name: home_games
+        meta:
+          external_location: "read_csv('../data/lahman/HomeGames.csv', sample_size=-1, all_varchar=true)"
+
+      - name: managers
+        meta:
+          external_location: "read_csv('../data/lahman/Managers.csv', sample_size=-1, all_varchar=true)"
+
+      - name: managers_half
+        meta:
+          external_location: "read_csv('../data/lahman/ManagersHalf.csv', sample_size=-1, all_varchar=true)"
+
+      - name: parks
+        meta:
+          external_location: "read_csv('../data/lahman/Parks.csv', sample_size=-1, all_varchar=true)"
+
+      - name: people
+        meta:
+          external_location: "read_csv('../data/lahman/People.csv', sample_size=-1, all_varchar=true)"
+
+      - name: pitching
+        meta:
+          external_location: "read_csv('../data/lahman/Pitching.csv', sample_size=-1, all_varchar=true)"
+
+      - name: pitching_post
+        meta:
+          external_location: "read_csv('../data/lahman/PitchingPost.csv', sample_size=-1, all_varchar=true)"
+
+      - name: salaries
+        meta:
+          external_location: "read_csv('../data/lahman/Salaries.csv', sample_size=-1, all_varchar=true)"
+
+      - name: schools
+        meta:
+          external_location: "read_csv('../data/lahman/Schools.csv', sample_size=-1, all_varchar=true)"
+
+      - name: series_post
+        meta:
+          external_location: "read_csv('../data/lahman/SeriesPost.csv', sample_size=-1, all_varchar=true)"
+
+      - name: teams
+        meta:
+          external_location: "read_csv('../data/lahman/Teams.csv', sample_size=-1, all_varchar=true, names=['yearID', 'lgID', 'teamID', 'franchID', 'divID', 'Rank', 'G', 'Ghome', 'W', 'L', 'DivWin', 'WCWin', 'LgWin', 'WSWin', 'R', 'AB', 'H', '_2B', '_3B', 'HR', 'BB', 'SO', 'SB', 'CS', 'HBP', 'SF', 'RA', 'ER', 'ERA', 'CG', 'SHO', 'SV', 'IPouts', 'HA', 'HRA', 'BBA', 'SOA', 'E', 'DP', 'FP', 'name', 'park', 'attendance', 'BPF', 'PPF', 'teamIDBR', 'teamIDlahman45', 'teamIDretro'])"
+
+      - name: teams_half
+        meta:
+          external_location: "read_csv('../data/lahman/TeamsHalf.csv', sample_size=-1, all_varchar=true)"

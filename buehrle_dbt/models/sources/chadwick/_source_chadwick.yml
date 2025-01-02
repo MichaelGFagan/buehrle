@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: chadwick_register
+    meta:
+      external_location: "read_csv('../data/chadwick/register/{name}.csv', sample_size=-1, auto_detect=true)"
+    tables:
+      - name: people-0
+      - name: people-1
+      - name: people-2
+      - name: people-3
+      - name: people-4
+      - name: people-5
+      - name: people-6
+      - name: people-7
+      - name: people-8
+      - name: people-9
+      - name: people-a
+      - name: people-b
+      - name: people-c
+      - name: people-d
+      - name: people-e
+      - name: people-f

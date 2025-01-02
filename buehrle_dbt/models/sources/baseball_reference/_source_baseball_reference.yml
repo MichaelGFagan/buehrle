@@ -1,0 +1,20 @@
+version: 2
+
+sources:
+  - name: baseball_reference
+    tables:
+      - name: batting_war
+        meta:
+          external_location: "read_csv('../data/baseball_reference/war/baseball_reference_batting_war.csv', sample_size=-1, nullstr='')"
+      - name: pitching_war
+        meta:
+          external_location: "read_csv('../data/baseball_reference/war/baseball_reference_pitching_war.csv', sample_size=-1, nullstr='')"
+      # - name: team_results
+      #   meta:
+      #     external_location: "read_csv_auto('/Users/michaelfagan/buehrle-dbt/data/baseball_reference/team_results/baseball_reference_*_game_logs.csv', filename=True, all_varchar=True, sample_size=-1, nullstr='', names=['date', 'team', 'home_away', 'opponent', 'win_loss', 'runs', 'runs_allowed', 'inning', 'record', 'rank', 'games_back', 'win', 'loss', 'save', 'time', 'day_night', 'attendance', 'championship_leverage_index', 'streak', 'originally_scheduled_date'])"
+      # - name: team_results_pre_1903
+      #   meta:
+      #     external_location: "read_csv_auto('/Users/michaelfagan/buehrle-dbt/data/baseball_reference/team_results/missing_cli/baseball_reference_*_game_logs.csv', filename=True, all_varchar=True, sample_size=-1, nullstr='', names=['date', 'team', 'home_away', 'opponent', 'win_loss', 'runs', 'runs_allowed', 'inning', 'record', 'rank', 'games_back', 'win', 'loss', 'save', 'time', 'day_night', 'attendance', 'streak', 'originally_scheduled_date'])"
+      - name: draft_results
+        meta:
+          external_location: "read_csv('../data/baseball_reference/draft_results/baseball_reference_draft_results_*.csv', sample_size=-1, all_varchar=true)"

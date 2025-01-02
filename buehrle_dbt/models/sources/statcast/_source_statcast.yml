@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: statcast
+    tables:
+      - name: pitches
+        meta:
+          external_location: "read_csv('../data/statcast/statcast_*.csv', sample_size=-1, all_varchar=true)"

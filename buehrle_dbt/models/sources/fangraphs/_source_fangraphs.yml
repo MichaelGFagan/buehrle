@@ -1,0 +1,11 @@
+version: 2
+
+sources:
+  - name: fangraphs
+    tables:
+      - name: batting
+        meta:
+          external_location: "read_csv('../data/fangraphs/batting/fangraphs_batting_*.csv', sample_size=-1, all_varchar=true)"
+      - name: pitching
+        meta:
+          external_location: "read_csv('../data/fangraphs/pitching/fangraphs_pitching_*.csv', sample_size=-1, all_varchar=true)"

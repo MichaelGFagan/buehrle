@@ -1,0 +1,23 @@
+version: 2
+
+sources:
+  - name: retrosheet
+    tables:
+      - name: regular_season_games
+        meta:
+          external_location: "read_csv('../data/retrosheet/game_logs/regular_season_games/retrosheet_*.csv', sample_size=-1, all_varchar=true)"
+      - name: all_star_games
+        meta:
+          external_location: "read_csv('../data/retrosheet/game_logs/retrosheet_all_star_games.csv', sample_size=-1, all_varchar=true)"
+      - name: division_series_games
+        meta:
+          external_location: "read_csv('../data/retrosheet/game_logs/retrosheet_division_series_games.csv', sample_size=-1, all_varchar=true)"
+      - name: league_championship_games
+        meta:
+          external_location: "read_csv('../data/retrosheet/game_logs/retrosheet_league_championship_games.csv', sample_size=-1, all_varchar=true)"
+      - name: wild_card_games
+        meta:
+          external_location: "read_csv('../data/retrosheet/game_logs/retrosheet_wild_card_games.csv', sample_size=-1, all_varchar=true)"
+      - name: world_series_games
+        meta:
+          external_location: "read_csv('../data/retrosheet/game_logs/retrosheet_world_series_games.csv', sample_size=-1, all_varchar=true)"

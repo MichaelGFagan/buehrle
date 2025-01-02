@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: utils
+    tables:
+      - name: team_ids
+        meta:
+          external_location: "read_csv('../data/team_ids.csv', sample_size=-1, all_varchar=true)"
