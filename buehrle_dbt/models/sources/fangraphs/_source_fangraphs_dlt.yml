@@ -1,0 +1,9 @@
+version: 2
+
+sources:
+  - name: fangraphs_dlt
+    schema: fangraphs
+    tables:
+      - name: batting
+      - name: pitching
+      - name: fielding

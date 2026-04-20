@@ -6,37 +6,7 @@
 
 with source as (
 
-    select * from {{ source('chadwick_register', 'people-0') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-1') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-2') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-3') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-4') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-5') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-6') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-7') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-8') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-9') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-a') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-b') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-c') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-d') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-e') }}
-    union all
-    select * from {{ source('chadwick_register', 'people-f') }}
+    select * from {{ source('chadwick', 'register') }}
 
 ),
 

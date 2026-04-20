@@ -1,3 +1,10 @@
+{{
+    config(
+        materialized='table',
+        enabled=false
+    )
+}}
+
 with statcast as (
 
     select

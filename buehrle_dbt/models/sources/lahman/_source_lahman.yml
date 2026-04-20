@@ -29,7 +29,7 @@ sources:
 
       - name: batting
         meta:
-          external_location: "read_csv('../data/lahman/Batting.csv', sample_size=-1, all_varchar=true, names = ['playerID', 'yearID', 'stint', 'teamID', 'lgID', 'G', 'G_batting', 'AB', 'R', 'H', '_2B', '_3B', 'HR', 'RBI', 'SB', 'CS', 'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP', 'G_old'])"
+          external_location: "read_csv('../data/lahman/Batting.csv', sample_size=-1, all_varchar=true, names = ['playerID', 'yearID', 'stint', 'teamID', 'lgID', 'G', 'AB', 'R', 'H', '_2B', '_3B', 'HR', 'RBI', 'SB', 'CS', 'BB', 'SO', 'IBB', 'HBP', 'SH', 'SF', 'GIDP'])"
 
       - name: batting_post
         meta:

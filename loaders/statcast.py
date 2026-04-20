@@ -4,6 +4,8 @@ import os
 import pandas as pd
 from pybaseball import statcast
 from calendar import monthrange
+from prefect import flow, task, get_run_logger
+from prefect.task_runners import ThreadPoolTaskRunner
 
 TODAY = datetime.date.today()
 THIS_YEAR = TODAY.year
@@ -16,16 +18,20 @@ PARSER.add_argument('-e', '--end', type=int, help="last year to extract from Sta
 ARGS = PARSER.parse_args()
 START = ARGS.start
 if ARGS.end:
-    END = ARGS.end
+    END = ARGS.end + 1
 else:
-    END = ARGS.start
+    END = ARGS.start + 1
 
 PATH = os.path.dirname(__file__).replace('loaders', 'data/statcast')
 os.makedirs(PATH, exist_ok=True)
 
-def get_statcast_year(year, end_month_range):
-    df_dict = {}
-    for month in range(3, end_month_range):
+@task
+def get_statcast_year(year):
+    df_list = []
+    end_month = 12
+    if year == TODAY.year:
+        end_month = TODAY.month + 1
+    for month in range(3, end_month):
         start_date = datetime.date(year, month, 1).strftime("%Y-%m-%d")
         if year == THIS_YEAR and month == THIS_MONTH:
             end_date = TODAY.strftime("%Y-%m-%d")
@@ -35,26 +41,32 @@ def get_statcast_year(year, end_month_range):
             df = statcast(start_date, end_date)
         except:
             pass
-        df_dict[month] = df
+        df_list.append(df)
+    df_dict = {'year': year, 'df_list': df_list}
     return df_dict
 
-def collate_statcast_dataframe(df_dict):
-    data = pd.DataFrame()
-    for df in list(df_dict.keys()):
-        if len(df_dict[df].index) > 0:
-            data = pd.concat([data, df_dict[df]])
-    return data
+@task
+def process_statcast_dataframe(df_dict):
+    year = df_dict['year']
+    df_list = df_dict['df_list']
 
+    filename = f"statcast_{year}.csv"
+
+    df = pd.DataFrame()
+    for df_ in df_list:
+        if len(df_.index) > 0:
+            df = pd.concat([df, df_])
+    
+    df.rename(columns={"pitcher.1": "pitcher_1", "fielder_2.1": "fielder_2_1"}, inplace=True)
+    df.to_csv(f'{PATH}/{filename}', index=False)
+
+@flow(task_runner=ThreadPoolTaskRunner(max_workers=3))
 def download_statcast(start_year=START, end_year=END):
-    for year in range(start_year, end_year):
-        end_month_range = 12
-        if year == TODAY.year:
-            end_month_range = TODAY.month + 1
-        filename = f"statcast_{year}.csv"
-        year_df_dict = get_statcast_year(year, end_month_range)
-        df = collate_statcast_dataframe(year_df_dict)
-        df.rename(columns={"pitcher.1": "pitcher_1", "fielder_2.1": "fielder_2_1"}, inplace=True)
-        df.to_csv(f'{PATH}/{filename}', index=False)
+    years = range(start_year, end_year)
+
+    downloaded_data = get_statcast_year.map(years)
+    process_statcast_dataframe.map(downloaded_data).result()
+
 
 if __name__ == '__main__':
     download_statcast(START, END)

@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: baseball_reference_dlt
+    schema: baseball_reference
+    tables:
+      - name: war_batting
+      - name: war_pitching

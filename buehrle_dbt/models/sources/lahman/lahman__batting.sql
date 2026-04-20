@@ -1,11 +1,10 @@
 with batting as (
 
     select
-        * exclude(playerid, yearid, stint, g_batting, g_old)
+        * exclude(playerid, yearid, stint)
       , yearid
       , playerid
       , stint
-      , g_batting
       , false::boolean as is_postseason
       
     from {{ source('lahman', 'batting') }}
@@ -19,7 +18,6 @@ batting_post as (
       , yearid
       , playerid
       , round as stint
-      , null as g_batting
       , true::boolean as is_postseason
       
     from {{ source('lahman', 'batting_post') }}
@@ -50,7 +48,6 @@ renamed as (
       , unioned.is_postseason
       , lookup.person_id
       , ifnull(unioned.g::int, 0) as games
-      , ifnull(unioned.g_batting::int, 0) as games_batting
       , ifnull(unioned.ab::int, 0) as at_bats
       , ifnull(unioned.r::int, 0) as runs
       , ifnull(unioned.h::int, 0) as hits
@@ -105,7 +102,6 @@ transform as (
       , person_id 
       , is_postseason
       , games
-      , games_batting
       , at_bats + walks + hit_by_pitches + sacrifice_hits + sacrifice_flies as plate_appearances
       , at_bats
       , runs

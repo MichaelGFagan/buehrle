@@ -1,10 +1,21 @@
-with source as (
+{{
+    config(
+        enabled=false
+    )
+}}
+
+with lahman as (
+
+    select * from {{ ref('lahman__teams') }}
+)
+
+, fangraphs as (
 
     select * from {{ source('utils', 'team_ids') }}
 
-),
+)
 
-transform as (
+, transform as (
 
     select
         yearID as year_id
@@ -15,11 +26,12 @@ transform as (
       , teamIDBR as baseball_reference_team_id
       , teamIDretro as retrosheet_team_id
 
-    from source
+    from teams
+    left join fangraphs
 
-),
+)
 
-final as (
+, final as (
 
     select
         {{ dbt_utils.generate_surrogate_key([

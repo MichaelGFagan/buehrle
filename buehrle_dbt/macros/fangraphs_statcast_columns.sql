@@ -1,0 +1,121 @@
+{%- macro fangraphs_statcast_columns(stat) -%}
+
+    {%- set columns = [
+        {'raw_name': 'EV', 'column_name': 'average_exit_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'maxEV', 'column_name': 'max_exit_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'EV90', 'column_name': '_90th_percentile_exit_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'LA', 'column_name': 'average_launch_angle_sc', 'type': 'numeric'},
+        {'raw_name': 'Barrels', 'column_name': 'barrels_sc', 'type': 'int64'},
+        {'raw_name': 'Barrel%', 'column_name': 'barrel_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'HardHit', 'column_name': 'hard_hit_balls_sc', 'type': 'int64'},
+        {'raw_name': 'HardHit%', 'column_name': 'hard_hit_ball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'Events', 'column_name': 'batted_balls_sc', 'type': 'int64'},
+        {'raw_name': 'pfxFA%', 'column_name': 'four_seam_fastball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFT%', 'column_name': 'two_seam_fastball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFC%', 'column_name': 'cutter_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFS%', 'column_name': 'splitter_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFO%', 'column_name': 'forkball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxSI%', 'column_name': 'sinker_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxSL%', 'column_name': 'slider_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxCU%', 'column_name': 'curveball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxKC%', 'column_name': 'knuckle_curve_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxEP%', 'column_name': 'eephus_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxCH%', 'column_name': 'changeup_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxSC%', 'column_name': 'screwball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxKN%', 'column_name': 'knuckleball_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxUN%', 'column_name': 'unidentified_pitch_percentage_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvFA%', 'column_name': 'four_seam_fastball_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvFT%', 'column_name': 'two_seam_fastball_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvFC%', 'column_name': 'cutter_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvFS%', 'column_name': 'splitter_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvFO%', 'column_name': 'forkball_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvSI%', 'column_name': 'sinker_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvSL%', 'column_name': 'slider_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvCU%', 'column_name': 'curveball_average_velocity_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxvKC%', 'column_name': 'knuckle_curve_average_velocity_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxvEP%',  'column_name': 'eephus_average_velocity_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxvCH%',  'column_name': 'changeup_average_velocity_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxvSC%',  'column_name': 'screwball_average_velocity_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxvKN%',  'column_name': 'knuckleball_average_velocity_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxFA-X', 'column_name': 'four_seam_fastball_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFT-X', 'column_name': 'two_seam_fastball_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFC-X', 'column_name': 'cutter_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFS-X', 'column_name': 'splitter_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFO-X', 'column_name': 'forkball_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxSI-X', 'column_name': 'sinker_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxSL-X', 'column_name': 'slider_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxCU-X', 'column_name': 'curveball_average_horizontal_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxKC-X', 'column_name': 'knuckle_curve_average_horizontal_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxEP-X', 'column_name': 'eephus_average_horizontal_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxCH-X', 'column_name': 'changeup_average_horizontal_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxSC-X', 'column_name': 'screwball_average_horizontal_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxKN-X', 'column_name': 'knuckleball_average_horizontal_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxFA-Z', 'column_name': 'four_seam_fastball_average_vertical_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFT-Z', 'column_name': 'two_seam_fastball_average_vertical_movement_inches_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxFC-Z', 'column_name': 'cutter_average_vertical_movement_sc',  'type': 'numeric'},
+        {'raw_name': 'pfxFS-Z', 'column_name': 'splitter_average_vertical_movement_inches_sc',  'type': 'numeric'},
+        {'raw_name': 'pfxFO-Z', 'column_name': 'forkball_average_vertical_movement_inches_sc',  'type': 'numeric'},
+        {'raw_name': 'pfxSI-Z', 'column_name': 'sinker_average_vertical_movement_inches_sc',  'type': 'numeric'},
+        {'raw_name': 'pfxSL-Z', 'column_name': 'slider_average_vertical_movement_inches_sc',  'type': 'numeric'},
+        {'raw_name': 'pfxCU-Z', 'column_name': 'curveball_average_vertical_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxKC-Z', 'column_name': 'knuckle_curve_average_vertical_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxEP-Z', 'column_name': 'eephus_average_vertical_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxCH-Z', 'column_name': 'changeup_average_vertical_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxSC-Z', 'column_name': 'screwball_average_vertical_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxKN-Z', 'column_name': 'knuckleball_average_vertical_movement_inches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwFA', 'column_name': 'four_seam_fastball_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwFT', 'column_name': 'two_seam_fastball_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwFC', 'column_name': 'cutter_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwFS', 'column_name': 'splitter_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwFO', 'column_name': 'forkball_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwSI', 'column_name': 'sinker_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwSL', 'column_name': 'slider_runs_above_average_sc', 'type': 'numeric'},
+        {'raw_name': 'pfxwCU', 'column_name': 'curveball_runs_above_average_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwKC', 'column_name': 'knuckle_curve_runs_above_average_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwEP', 'column_name': 'eephus_runs_above_average_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwCH', 'column_name': 'changeup_runs_above_average_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwSC', 'column_name': 'screwball_runs_above_average_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwKN', 'column_name': 'knuckleball_runs_above_average_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwFA/C', 'column_name': 'four_seam_fastball_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwFT/C', 'column_name': 'two_seam_fastball_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwFC/C', 'column_name': 'cutter_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwFS/C', 'column_name': 'splitter_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwFO/C', 'column_name': 'forkball_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwSI/C', 'column_name': 'sinker_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwSL/C', 'column_name': 'slider_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwCU/C', 'column_name': 'curveball_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwKC/C', 'column_name': 'knuckle_curve_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwEP/C', 'column_name': 'eephus_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwCH/C', 'column_name': 'changeup_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwSC/C', 'column_name': 'screwball_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxwKN/C', 'column_name': 'knuckleball_runs_above_average_per_100_pitches_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxSwing%', 'column_name': 'swing_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxO-Swing%', 'column_name': 'outside_zone_swing_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxZ-Swing%', 'column_name': 'inside_zone_swing_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxContact%', 'column_name': 'contact_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxO-Contact%', 'column_name': 'outside_zone_contact_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxZ-Contact%', 'column_name': 'inside_zone_contact_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxZone%', 'column_name': 'pitches_seen_inside_zone_percentage_sc',  'type':  'numeric'},
+        {'raw_name': 'pfxPace', 'column_name': 'average_time_between_pitches_seconds_sc',  'type':  'numeric'}
+    ] -%}
+
+    {%- if stat == 'batting' -%}
+        {%- set additional_columns = [
+            {'raw_name': 'xwOBA', 'column_name': 'expected_weighted_on_base_average', 'type': 'numeric'},
+            {'raw_name': 'xAVG', 'column_name': 'expected_batting_average', 'type': 'numeric'},
+            {'raw_name': 'xSLG', 'column_name': 'expected_slugging_percentage', 'type': 'numeric'},
+            {'raw_name': 'XBR', 'column_name': 'baserunning_above_average_sc', 'type': 'numeric'}
+        ] -%}
+    {%- elif stat == 'pitching' -%}
+        {%- set additional_columns = [
+            {'raw_name': 'FBv', 'column_name': 'fastball_velocity', 'type': 'numeric'}
+        ] -%}
+    {%- else -%}
+        {%- set additional_columns = [] -%}
+    {%- endif -%}
+
+    {%- set columns = columns + additional_columns -%}
+
+    {{ return(columns) }}
+
+{%- endmacro -%}
