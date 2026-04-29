@@ -1,98 +1,46 @@
 import argparse
-import datetime
-import logging
-import os
-import time
 import dlt
-import polars as pl
-import pyarrow as pa
-import requests
 
 from dlt.destinations.exceptions import DatabaseUndefinedRelation
 from typing import Iterator
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
+from _common import BASE_URL, DB_PATH, TODAY, run_years
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '../../data/buehrle.duckdb')
-USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
-REQUEST_TIMEOUT = 60
-SLEEP_BETWEEN = 1
-
-TODAY = datetime.date.today()
 STATCAST_START_YEAR = 2015
-
-
-def _fetch_csv(url: str) -> pl.DataFrame | None:
-    response = requests.get(url, headers={'User-Agent': USER_AGENT}, timeout=REQUEST_TIMEOUT)
-    response.raise_for_status()
-    df = pl.read_csv(response.content, infer_schema=False)
-    return df if df.height > 0 else None
-
-
-def _inject_labels(df: pl.DataFrame, labels: dict) -> pl.DataFrame:
-    existing = set(df.columns)
-    additions = [pl.lit(str(v)).alias(k) for k, v in labels.items() if k not in existing]
-    return df.with_columns(additions) if additions else df
-
-
-def _to_arrow(df: pl.DataFrame, primary_keys: set[str]) -> pa.Table:
-    table = df.to_arrow()
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in primary_keys)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
-
-
-def _run_years(name: str, pks: set[str], start_year: int, end_year: int, iter_fn, update: bool = False) -> Iterator:
-    state = dlt.current.resource_state()
-    from_year = start_year if update else state.get('last_year', start_year)
-    for year in range(from_year, end_year + 1):
-        for labels, url in iter_fn(year):
-            logging.info(f'Fetching {name} {year} {labels if labels else ""}')
-            df = _fetch_csv(url)
-            if df is None:
-                continue
-            df = _inject_labels(df, {'year': year, **labels})
-            yield _to_arrow(df, pks)
-            time.sleep(SLEEP_BETWEEN)
-        state['last_year'] = year
 
 
 @dlt.resource(name='exit_velo_barrels', write_disposition='merge', primary_key=['player_id', 'year'])
 def exit_velo_barrels(start_year: int, end_year: int, update: bool = False) -> Iterator:
-    yield from _run_years(
+    yield from run_years(
         'exit_velo_barrels', {'player_id', 'year'}, start_year, end_year,
-        lambda y: [({}, f'https://baseballsavant.mlb.com/leaderboard/statcast?type=batter&year={y}&position=&team=&min=1&csv=true')],
+        lambda y: [({}, f'{BASE_URL}/statcast?type=batter&year={y}&position=&team=&min=1&csv=true')],
         update,
     )
 
 
 @dlt.resource(name='expected_stats', write_disposition='merge', primary_key=['player_id', 'year'])
 def expected_stats(start_year: int, end_year: int, update: bool = False) -> Iterator:
-    yield from _run_years(
+    yield from run_years(
         'expected_stats', {'player_id', 'year'}, start_year, end_year,
-        lambda y: [({}, f'https://baseballsavant.mlb.com/leaderboard/expected_statistics?type=batter&year={y}&position=&team=&min=1&csv=true')],
+        lambda y: [({}, f'{BASE_URL}/expected_statistics?type=batter&year={y}&position=&team=&min=1&csv=true')],
         update,
     )
 
 
 @dlt.resource(name='percentile_ranks', write_disposition='merge', primary_key=['player_id', 'year'])
 def percentile_ranks(start_year: int, end_year: int, update: bool = False) -> Iterator:
-    yield from _run_years(
+    yield from run_years(
         'percentile_ranks', {'player_id', 'year'}, start_year, end_year,
-        lambda y: [({}, f'https://baseballsavant.mlb.com/leaderboard/percentile-rankings?type=batter&year={y}&position=&team=&csv=true')],
+        lambda y: [({}, f'{BASE_URL}/percentile-rankings?type=batter&year={y}&position=&team=&csv=true')],
         update,
     )
 
 
 @dlt.resource(name='pitch_arsenal_stats', write_disposition='merge', primary_key=['player_id', 'year', 'pitch_type'])
 def pitch_arsenal_stats(start_year: int, end_year: int, update: bool = False) -> Iterator:
-    yield from _run_years(
+    yield from run_years(
         'pitch_arsenal_stats', {'player_id', 'year', 'pitch_type'}, start_year, end_year,
-        lambda y: [({}, f'https://baseballsavant.mlb.com/leaderboard/pitch-arsenal-stats?type=batter&pitchType=&year={y}&team=&min=1&csv=true')],
+        lambda y: [({}, f'{BASE_URL}/pitch-arsenal-stats?type=batter&pitchType=&year={y}&team=&min=1&csv=true')],
         update,
     )
 
@@ -102,10 +50,10 @@ def pitch_arsenal_stats(start_year: int, end_year: int, update: bool = False) ->
 @dlt.resource(name='bat_tracking', write_disposition='merge', primary_key=['id', 'year'])
 def bat_tracking(start_year: int, end_year: int, update: bool = False, game_type: str = 'Regular') -> Iterator:
     gt = '' if game_type == 'all' else game_type
-    yield from _run_years(
+    yield from run_years(
         'bat_tracking', {'id', 'year'}, start_year, end_year,
         lambda y: [({}, (
-            'https://baseballsavant.mlb.com/leaderboard/bat-tracking?'
+            f'{BASE_URL}/bat-tracking?'
             f'gameType={gt}&minSwings=1&minGroupSwings=1&seasonStart={y}&seasonEnd={y}&type=batter&csv=true'
         ))],
         update,
