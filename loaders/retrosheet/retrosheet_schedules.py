@@ -9,11 +9,11 @@ import pyarrow as pa
 from typing import Iterator
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from retrosheet_sync import REPO_DIR, sync
+from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
-
-DB_PATH = os.path.join(os.path.dirname(__file__), '../../data/buehrle.duckdb')
 
 SCHEDULE_PATH = os.path.join(REPO_DIR, 'seasons/{season}/{season}schedule.csv')
 
@@ -29,14 +29,8 @@ PRIMARY_KEYS = {'date', 'game_num', 'home_team'}
 
 def _fetch(path: str) -> pa.Table:
     logging.info(f'Reading {path}')
-    table = pl.read_csv(path, has_header=False, new_columns=COLUMNS, infer_schema_length=0).to_arrow()
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in PRIMARY_KEYS)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
+    df = pl.read_csv(path, has_header=False, new_columns=COLUMNS, infer_schema_length=0)
+    return to_arrow(df, PRIMARY_KEYS)
 
 
 @dlt.resource(
@@ -77,11 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
 
-    pipeline = dlt.pipeline(
-        pipeline_name='retrosheet_schedules',
-        destination=dlt.destinations.duckdb(DB_PATH),
-        dataset_name='retrosheet_schedules',
-    )
+    pipeline = make_pipeline('retrosheet_schedules')
 
     source = retrosheet_schedules(
         start_season=args.start,
@@ -90,9 +80,7 @@ if __name__ == '__main__':
     )
 
     if args.full_refresh:
-        with pipeline.destination_client() as client:
-            client.drop_storage()
-        pipeline.drop()
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(source)
     print(load_info)

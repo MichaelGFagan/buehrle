@@ -10,15 +10,15 @@ import dlt
 import polars as pl
 import pyarrow as pa
 
-from dlt.destinations.exceptions import DatabaseUndefinedRelation
 from typing import Iterator
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from retrosheet_sync import REPO_DIR, check
+from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '../../data/buehrle.duckdb')
 SEASONS_DIR = os.path.join(REPO_DIR, 'seasons')
 
 FULL_EXTENSIONS = {'.EVA', '.EVN', '.EVE', '.EVR', '.EVF'}
@@ -51,14 +51,7 @@ def _run_cwevent(year: int, season_dir: str, filenames: list[str]) -> pa.Table |
             pl.int_range(pl.len()).over('GAME_ID').cast(pl.Utf8).alias('EVENT_ID')
         )
     )
-    table = df.to_arrow()
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in PRIMARY_KEYS)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
+    return to_arrow(df, PRIMARY_KEYS)
 
 
 def _seasons(start: int, end: int) -> Iterator[tuple[int, str]]:
@@ -123,21 +116,12 @@ if __name__ == '__main__':
     start = args.year if args.year else args.start
     end   = args.year if args.year else args.end
 
-    pipeline = dlt.pipeline(
-        pipeline_name='retrosheet_events',
-        destination=dlt.destinations.duckdb(DB_PATH),
-        dataset_name='retrosheet_events',
-    )
+    pipeline = make_pipeline('retrosheet_events')
 
     source = retrosheet_events(start_season=start, end_season=end, update=args.update)
 
     if args.full_refresh:
-        with pipeline.destination_client() as client:
-            try:
-                client.drop_storage()
-            except DatabaseUndefinedRelation:
-                pass
-        pipeline.drop()
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(source)
     print(load_info)

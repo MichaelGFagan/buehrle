@@ -6,15 +6,14 @@ import dlt
 import polars as pl
 import pyarrow as pa
 
-from dlt.destinations.exceptions import DatabaseUndefinedRelation
 from typing import Iterator
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from retrosheet_sync import REPO_DIR, check
+from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
-
-DB_PATH = os.path.join(os.path.dirname(__file__), '../../data/buehrle.duckdb')
 
 COLUMNS = ['player_id', 'last_name', 'first_name', 'bats', 'throws', 'team', 'position']
 PRIMARY_KEYS = {'player_id', 'team', 'season'}
@@ -31,15 +30,7 @@ def _load_season(season: int) -> pa.Table:
         tables.append(table)
 
     combined = pl.concat(tables).with_columns(pl.lit(str(season)).alias('season'))
-    table = combined.to_arrow()
-
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in PRIMARY_KEYS)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
+    return to_arrow(combined, PRIMARY_KEYS)
 
 
 @dlt.resource(
@@ -79,11 +70,7 @@ if __name__ == '__main__':
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
 
-    pipeline = dlt.pipeline(
-        pipeline_name='retrosheet_rosters',
-        destination=dlt.destinations.duckdb(DB_PATH),
-        dataset_name='retrosheet_rosters',
-    )
+    pipeline = make_pipeline('retrosheet_rosters')
 
     source = retrosheet_rosters(
         start_season=args.start,
@@ -92,12 +79,7 @@ if __name__ == '__main__':
     )
 
     if args.full_refresh:
-        with pipeline.destination_client() as client:
-            try:
-                client.drop_storage()
-            except DatabaseUndefinedRelation:
-                pass
-        pipeline.drop()
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(source)
     print(load_info)

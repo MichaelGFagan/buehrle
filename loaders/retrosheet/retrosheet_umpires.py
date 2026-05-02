@@ -6,15 +6,14 @@ import dlt
 import polars as pl
 import pyarrow as pa
 
-from dlt.destinations.exceptions import DatabaseUndefinedRelation
 from typing import Iterator
 
 sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 from retrosheet_sync import REPO_DIR, check
+from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
-
-DB_PATH = os.path.join(os.path.dirname(__file__), '../../data/buehrle.duckdb')
 
 COLUMN_RENAMES = {'ID': 'umpire_id', 'last': 'last_name', 'first': 'first_name'}
 PRIMARY_KEYS = {'umpire_id', 'season'}
@@ -22,19 +21,12 @@ PRIMARY_KEYS = {'umpire_id', 'season'}
 
 def _load_season(season: int) -> pa.Table:
     path = os.path.join(REPO_DIR, f'seasons/{season}/UMPIRES{season}.txt')
-    table = (
+    df = (
         pl.read_csv(path, infer_schema_length=0)
         .rename(COLUMN_RENAMES)
         .with_columns(pl.lit(str(season)).alias('season'))
-        .to_arrow()
     )
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in PRIMARY_KEYS)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
+    return to_arrow(df, PRIMARY_KEYS)
 
 
 @dlt.resource(
@@ -71,11 +63,7 @@ if __name__ == '__main__':
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
 
-    pipeline = dlt.pipeline(
-        pipeline_name='retrosheet_umpires',
-        destination=dlt.destinations.duckdb(DB_PATH),
-        dataset_name='retrosheet_umpires',
-    )
+    pipeline = make_pipeline('retrosheet_umpires')
 
     source = retrosheet_umpires(
         start_season=args.start,
@@ -84,12 +72,7 @@ if __name__ == '__main__':
     )
 
     if args.full_refresh:
-        with pipeline.destination_client() as client:
-            try:
-                client.drop_storage()
-            except DatabaseUndefinedRelation:
-                pass
-        pipeline.drop()
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(source)
     print(load_info)

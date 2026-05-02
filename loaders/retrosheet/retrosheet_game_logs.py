@@ -1,64 +1,169 @@
 import argparse
+import logging
 import os
-from pybaseball import retrosheet as rs
+import sys
+import dlt
+import polars as pl
+import pyarrow as pa
 
-PARSER = argparse.ArgumentParser(description="Download Retrosheet game log data into a CSV")
-PARSER.add_argument('-s', '--start', type=int, default=1871, help="first year to extract from Retrosheet")
-PARSER.add_argument('-e', '--end', type=int, default=2023, help="last year to extract from Retrosheet")
-PARSER.add_argument('-p', '--playoffs', action='store_true', help="include playoffs and all-star game logs from Retrosheet")
+from enum import Enum
+from typing import Iterator
 
-ARGS = PARSER.parse_args()
+sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from retrosheet_sync import REPO_DIR, check
+from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
-START = ARGS.start
-END = ARGS.end + 1
-PLAYOFFS = ARGS.playoffs
-YEARS = range(START, END)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
-PLAYOFF_GAME_LOG_FUNCTIONS = {
-    'world_series_games': rs.world_series_logs,
-    'all_star_games': rs.all_star_game_logs,
-    'wild_card_games': rs.wild_card_logs,
-    'division_series_games': rs.division_series_logs,
-    'league_championship_games': rs.lcs_logs
-}
+SEASON_PATH = os.path.join(REPO_DIR, 'seasons/{season}/GL{season}.TXT')
+PLAYOFF_PATH = os.path.join(REPO_DIR, 'gamelog/GL{suffix}.TXT')
 
-PATH = os.path.dirname(__file__).replace('loaders', 'data/retrosheet/game_logs')
-os.makedirs(PATH, exist_ok=True)
+COLUMNS = [
+    'date', 'game_num', 'day_of_week', 'visiting_team',
+    'visiting_team_league', 'visiting_team_game_num', 'home_team',
+    'home_team_league', 'home_team_game_num', 'visiting_score',
+    'home_score', 'num_outs', 'day_night', 'completion_info',
+    'forfeit_info', 'protest_info', 'park_id', 'attendance',
+    'time_of_game_minutes', 'visiting_line_score',
+    'home_line_score', 'visiting_abs', 'visiting_hits',
+    'visiting_doubles', 'visiting_triples', 'visiting_homeruns',
+    'visiting_rbi', 'visiting_sac_hits', 'visiting_sac_flies',
+    'visiting_hbp', 'visiting_bb', 'visiting_iw', 'visiting_k',
+    'visiting_sb', 'visiting_cs', 'visiting_gdp', 'visiting_ci',
+    'visiting_lob', 'visiting_pitchers_used',
+    'visiting_individual_er', 'visiting_er', 'visiting_wp',
+    'visiting_balks', 'visiting_po', 'visiting_assists',
+    'visiting_errors', 'visiting_pb', 'visiting_dp',
+    'visiting_tp', 'home_abs', 'home_hits', 'home_doubles',
+    'home_triples', 'home_homeruns', 'home_rbi',
+    'home_sac_hits', 'home_sac_flies', 'home_hbp', 'home_bb',
+    'home_iw', 'home_k', 'home_sb', 'home_cs', 'home_gdp',
+    'home_ci', 'home_lob', 'home_pitchers_used',
+    'home_individual_er', 'home_er', 'home_wp', 'home_balks',
+    'home_po', 'home_assists', 'home_errors', 'home_pb',
+    'home_dp', 'home_tp', 'ump_home_id', 'ump_home_name',
+    'ump_first_id', 'ump_first_name', 'ump_second_id',
+    'ump_second_name', 'ump_third_id', 'ump_third_name',
+    'ump_lf_id', 'ump_lf_name', 'ump_rf_id', 'ump_rf_name',
+    'visiting_manager_id', 'visiting_manager_name',
+    'home_manager_id', 'home_manager_name',
+    'winning_pitcher_id', 'winning_pitcher_name',
+    'losing_pitcher_id', 'losing_pitcher_name',
+    'save_pitcher_id', 'save_pitcher_name',
+    'game_winning_rbi_id', 'game_winning_rbi_name',
+    'visiting_starting_pitcher_id', 'visiting_starting_pitcher_name',
+    'home_starting_pitcher_id', 'home_starting_pitcher_name',
+    'visiting_1_id', 'visiting_1_name', 'visiting_1_pos',
+    'visiting_2_id', 'visiting_2_name', 'visiting_2_pos',
+    'visiting_3_id', 'visiting_3_name', 'visiting_3_pos',  # pybaseball has a bug: 'visiting_2_id.1'
+    'visiting_4_id', 'visiting_4_name', 'visiting_4_pos',
+    'visiting_5_id', 'visiting_5_name', 'visiting_5_pos',
+    'visiting_6_id', 'visiting_6_name', 'visiting_6_pos',
+    'visiting_7_id', 'visiting_7_name', 'visiting_7_pos',
+    'visiting_8_id', 'visiting_8_name', 'visiting_8_pos',
+    'visiting_9_id', 'visiting_9_name', 'visiting_9_pos',
+    'home_1_id', 'home_1_name', 'home_1_pos',
+    'home_2_id', 'home_2_name', 'home_2_pos',
+    'home_3_id', 'home_3_name', 'home_3_pos',
+    'home_4_id', 'home_4_name', 'home_4_pos',
+    'home_5_id', 'home_5_name', 'home_5_pos',
+    'home_6_id', 'home_6_name', 'home_6_pos',
+    'home_7_id', 'home_7_name', 'home_7_pos',
+    'home_8_id', 'home_8_name', 'home_8_pos',
+    'home_9_id', 'home_9_name', 'home_9_pos',
+    'misc', 'acquisition_info',
+]
 
 
-def get_retrosheet_df(scope, kwargs):
-    kwarg = kwargs[scope]
-    print(f'Loading Retrosheet {kwarg} game logs')
-    filename = f'retrosheet_{kwarg}.csv'
-    try:
-        if scope == 'year':
-            filename = f'regular_season_games/{filename}'
-            return rs.season_game_logs(kwarg), filename
-        elif scope == 'games':
-            return PLAYOFF_GAME_LOG_FUNCTIONS[kwarg](), filename
-    except:
-        print(f'Could not load Retrosheet {kwarg}.')
+class RetrosheetPlayoff(Enum):
+    WORLD_SERIES = 'WS'
+    ALL_STAR = 'AS'
+    WILD_CARD = 'WC'
+    DIVISION_SERIES = 'DV'
+    LEAGUE_CHAMPIONSHIP_SERIES = 'LC'
 
-def transform_and_load(**kwargs):
-    if 'year' in kwargs:
-        df, filename = get_retrosheet_df('year', kwargs)
-    elif 'games' in kwargs:
-        df, filename = get_retrosheet_df('games', kwargs)
-    else:
-        raise ValueError('Missing year or games keyword argument.')
-    df.rename(columns={"visiting_2_id.1": "visiting_3_id"}, inplace=True)
-    # table_schema = []
-    # for column in df.columns:
-    #     table_schema.append({'name': column, 'type': 'STRING'})
-    df.to_csv(f'{PATH}/{filename}', index=False)
+    def game_type(self) -> str:
+        return self.name.lower()
 
-def download_retrosheet():
-    for year in YEARS:
-        transform_and_load(year=year)
 
-    if PLAYOFFS:
-        for games in PLAYOFF_GAME_LOG_FUNCTIONS:
-            transform_and_load(games=games)
+PRIMARY_KEYS = {'home_team', 'date', 'game_num'}
+
+
+def _add_game_type(table: pa.Table, game_type: str) -> pa.Table:
+    return table.append_column('game_type', pa.array([game_type] * len(table), type=pa.utf8()))
+
+
+def _fetch(path: str) -> pa.Table:
+    logging.info(f'Reading {path}')
+    df = pl.read_csv(path, has_header=False, new_columns=COLUMNS, infer_schema_length=0)
+    return to_arrow(df, PRIMARY_KEYS)
+
+
+@dlt.resource(
+    name='game_logs',
+    write_disposition='merge',
+    primary_key=['home_team', 'date', 'game_num'],
+)
+def game_logs(
+    start_season: int,
+    end_season: int,
+    playoffs: str = 'include',
+    update: bool = False,
+) -> Iterator[dict]:
+    state = dlt.current.resource_state()
+    from_season = start_season if update else state.get('last_season', start_season)
+
+    if playoffs != 'only':
+        for season in range(from_season, end_season + 1):
+            path = SEASON_PATH.format(season=season)
+            for candidate in [path, path.lower()]:
+                try:
+                    df = _fetch(candidate)
+                    break
+                except Exception:
+                    continue
+            else:
+                logging.warning(f'Could not load season {season}')
+                continue
+            yield _add_game_type(df, 'regular_season')
+            state['last_season'] = season
+
+    if playoffs in ('include', 'only'):
+        for playoff in RetrosheetPlayoff:
+            try:
+                df = _fetch(PLAYOFF_PATH.format(suffix=playoff.value))
+                yield _add_game_type(df, playoff.game_type())
+            except Exception as e:
+                logging.warning(f'Could not load {playoff.name}: {e}')
+
+
+@dlt.source
+def retrosheet(start_season: int, end_season: int, playoffs: str = 'include', update: bool = False):
+    yield game_logs(start_season, end_season, playoffs, update)
+
 
 if __name__ == '__main__':
-    download_retrosheet()
+    check()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--start', type=int, default=1871)
+    parser.add_argument('--end', type=int, default=2025)
+    parser.add_argument('--playoffs', choices=['include', 'only'], default='include')
+    parser.add_argument('--full-refresh', action='store_true')
+    parser.add_argument('--update', action='store_true')
+    args = parser.parse_args()
+
+    pipeline = make_pipeline('retrosheet')
+
+    source = retrosheet(
+        start_season=args.start,
+        end_season=args.end,
+        playoffs=args.playoffs,
+        update=args.update,
+    )
+
+    if args.full_refresh:
+        handle_full_refresh(pipeline)
+
+    load_info = pipeline.run(source)
+    print(load_info)

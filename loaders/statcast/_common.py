@@ -1,17 +1,19 @@
 import datetime
 import logging
 import os
+import sys
 import time
 import dlt
 import polars as pl
-import pyarrow as pa
 import requests
 
 from typing import Callable, Iterator
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from dlt_utils import DB_PATH, handle_full_refresh, make_pipeline, to_arrow
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '../../data/buehrle.duckdb')
 TODAY = datetime.date.today()
 
 SAVANT_HOST = 'https://baseballsavant.mlb.com'
@@ -33,17 +35,6 @@ def inject_labels(df: pl.DataFrame, labels: dict) -> pl.DataFrame:
     existing = set(df.columns)
     additions = [pl.lit(str(v)).alias(k) for k, v in labels.items() if k not in existing]
     return df.with_columns(additions) if additions else df
-
-
-def to_arrow(df: pl.DataFrame, primary_keys: set[str]) -> pa.Table:
-    table = df.to_arrow()
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in primary_keys)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
 
 
 def run_years(

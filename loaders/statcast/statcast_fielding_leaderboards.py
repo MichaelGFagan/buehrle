@@ -1,10 +1,9 @@
 import argparse
 import dlt
 
-from dlt.destinations.exceptions import DatabaseUndefinedRelation
 from typing import Iterator
 
-from _common import BASE_URL, DB_PATH, SAVANT_HOST, TODAY, run_years
+from _common import BASE_URL, SAVANT_HOST, TODAY, handle_full_refresh, make_pipeline, run_years
 
 STATCAST_START_YEAR = 2016  # OAA leaderboards begin 2016
 
@@ -99,23 +98,14 @@ if __name__ == '__main__':
     parser.add_argument('--resources', nargs='+', default=None)
     args = parser.parse_args()
 
-    pipeline = dlt.pipeline(
-        pipeline_name='statcast_fielding_leaderboards',
-        destination=dlt.destinations.duckdb(DB_PATH),
-        dataset_name='statcast_fielding_leaderboards',
-    )
+    pipeline = make_pipeline('statcast_fielding_leaderboards')
 
     source = statcast_fielding_leaderboards(start_year=args.start, end_year=args.end, update=args.update)
     if args.resources:
         source = source.with_resources(*args.resources)
 
     if args.full_refresh:
-        with pipeline.destination_client() as client:
-            try:
-                client.drop_storage()
-            except DatabaseUndefinedRelation:
-                pass
-        pipeline.drop()
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(source)
     print(load_info)

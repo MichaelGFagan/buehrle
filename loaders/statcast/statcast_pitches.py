@@ -2,25 +2,29 @@ import argparse
 import datetime
 import logging
 import os
+import sys
 import dlt
 import polars as pl
-import pyarrow as pa
 
 from calendar import monthrange
 from dlt.sources.helpers import requests
 from typing import Iterator
 
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
 TODAY = datetime.date.today()
 SEASON_START_MONTH = 3
-DB_PATH = os.path.join(os.path.dirname(__file__), '../data/buehrle.duckdb')
 BASE_STATCAST_URL = 'https://baseballsavant.mlb.com/statcast_search/csv'
 
 COLUMN_RENAMES = {
     'pitcher.1':   'pitcher_1',
     'fielder_2.1': 'fielder_2_1',
 }
+
+PRIMARY_KEYS = {'game_pk', 'at_bat_number', 'pitch_number'}
 
 
 def _fetch_range(start_date: datetime.date, end_date: datetime.date):
@@ -44,15 +48,7 @@ def _fetch_range(start_date: datetime.date, end_date: datetime.date):
 
     df = pl.read_csv(response.content, infer_schema=False)
     df = df.rename({k: v for k, v in COLUMN_RENAMES.items() if k in df.columns})
-    PRIMARY_KEYS = {'game_pk', 'at_bat_number', 'pitch_number'}
-    table = df.to_arrow()
-    schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in PRIMARY_KEYS)
-        if f.type == pa.large_utf8()
-        else f
-        for f in table.schema
-    ])
-    return table.cast(schema)
+    return to_arrow(df, PRIMARY_KEYS)
 
 
 @dlt.resource(
@@ -94,17 +90,13 @@ def _parse_date(s: str, end: bool = False) -> datetime.date:
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', default=str(TODAY.year))
+    parser.add_argument('--start', default=str(2008))
     parser.add_argument('--end', default=str(TODAY.year))
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
 
-    pipeline = dlt.pipeline(
-        pipeline_name='statcast',
-        destination=dlt.destinations.duckdb(DB_PATH),
-        dataset_name='statcast',
-    )
+    pipeline = make_pipeline('statcast_pitches')
 
     source = statcast_source(
         start_date=_parse_date(args.start),
@@ -113,9 +105,7 @@ if __name__ == '__main__':
     )
 
     if args.full_refresh:
-        with pipeline.destination_client() as client:
-            client.drop_storage()
-        pipeline.drop()
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(source)
     print(load_info)
