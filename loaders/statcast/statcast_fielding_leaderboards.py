@@ -3,7 +3,7 @@ import dlt
 
 from typing import Iterator
 
-from _common import BASE_URL, SAVANT_HOST, TODAY, handle_full_refresh, make_pipeline, run_years
+from loaders.statcast._common import BASE_URL, SAVANT_HOST, TODAY, handle_full_refresh, make_pipeline, run_years
 
 STATCAST_START_YEAR = 2016  # OAA leaderboards begin 2016
 

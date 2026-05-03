@@ -1,8 +1,6 @@
 import argparse
 import datetime
 import logging
-import os
-import sys
 import dlt
 import polars as pl
 
@@ -10,8 +8,7 @@ from calendar import monthrange
 from dlt.sources.helpers import requests
 from typing import Iterator
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 

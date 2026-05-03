@@ -1,7 +1,5 @@
 import logging
-import os
 import re
-import sys
 import time
 import dlt
 
@@ -11,8 +9,7 @@ from enum import Enum
 from itertools import product
 from typing import Iterator
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from dlt_utils import handle_full_refresh, make_pipeline
+from loaders.dlt_utils import handle_full_refresh, make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 

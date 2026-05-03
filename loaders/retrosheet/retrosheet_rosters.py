@@ -1,17 +1,14 @@
 import argparse
 import logging
 import os
-import sys
 import dlt
 import polars as pl
 import pyarrow as pa
 
 from typing import Iterator
 
-sys.path.insert(0, os.path.dirname(__file__))
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from retrosheet_sync import REPO_DIR, check
-from dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+from loaders.retrosheet.retrosheet_sync import REPO_DIR, check
+from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 

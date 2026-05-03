@@ -1,6 +1,4 @@
 import logging
-import os
-import sys
 from io import StringIO
 
 import dlt
@@ -8,8 +6,7 @@ import pandas as pd
 
 from dlt.sources.helpers import requests
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from dlt_utils import make_pipeline
+from loaders.dlt_utils import make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
