@@ -18,8 +18,6 @@ from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
-HELPERS_PATH = os.path.join(os.path.dirname(__file__), '../helpers')
-
 BASE_URL = 'https://www.baseball-reference.com/draft/?year_ID={year}&draft_round={round}&draft_type={draft_type}&query_type=year_round'
 
 COLUMN_RENAMES = {
@@ -30,7 +28,7 @@ COLUMN_RENAMES = {
 PRIMARY_KEYS = {'Year', 'draft_type', 'Rnd', 'RdPck'}
 RETRY_BACKOFF = (30, 60, 120)
 
-with open(os.path.join(HELPERS_PATH, 'baseball_reference_draft_years.json')) as f:
+with open(os.path.join(os.path.dirname(__file__), 'baseball_reference_draft_years.json')) as f:
     DRAFT_YEARS = json.load(f)
 
 
@@ -153,21 +151,6 @@ def draft_results(
         from_year = max(start_year, type_start) if update else max(state.get(draft_type.value, type_start), start_year)
 
         for year in range(from_year, min(end_year, type_end) + 1):
-
-            # # 1971 junsec data is not reliably fetchable; use helper CSVs instead
-            # if draft_type == DraftType.JUNSEC and year == 1971:
-            #     dfs = [
-            #         pl.read_csv(os.path.join(HELPERS_PATH, filename), infer_schema_length=0)
-            #         for filename in [
-            #             'baseball_reference_draft_results_junsec_1971.csv',
-            #             'baseball_reference_draft_results_junsecd_1971.csv',
-            #         ]
-            #     ]
-            #     df = pl.concat(dfs).with_columns(pl.lit(draft_type.value).alias('draft_type'))
-            #     yield to_arrow(df, PRIMARY_KEYS)
-            #     state[draft_type.value] = year
-            #     continue
-
             rounds = _rounds_for_year(draft_type.value, year)
             if rounds == 0:
                 continue
