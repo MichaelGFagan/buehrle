@@ -28,9 +28,8 @@ def handle_full_refresh(pipeline) -> None:
 def to_arrow(df: pl.DataFrame, primary_keys: set[str]) -> pa.Table:
     table = df.to_arrow()
     schema = pa.schema([
-        f.with_type(pa.utf8()).with_nullable(f.name not in primary_keys)
-        if f.type == pa.large_utf8()
-        else f
+        (f.with_type(pa.utf8()) if f.type == pa.large_utf8() else f)
+            .with_nullable(f.name not in primary_keys)
         for f in table.schema
     ])
     return table.cast(schema)
