@@ -1,3 +1,22 @@
+# Loader CLI conventions
+
+Loaders should default to a small/recent scope (e.g. current season, current month) and require an explicit flag for a full backfill. This protects against accidentally hammering external APIs or producing large loads.
+
+Standard flags (see `loaders/mlb_statsapi/schedules.py` for the reference implementation):
+
+- **No args** → narrow default scope (e.g. current season).
+- **`--full-history`** → backfill from the earliest available data through the present. Mutually exclusive with `--season`/`--date` args.
+- **`--full-refresh`** → orthogonal to scope: drops the pipeline's destination schema before loading. Combine with `--full-history` for a clean full backfill.
+
+The `--full-history` and `--full-refresh` flags are independent because they answer different questions (*what range to load* vs. *whether to drop existing data first*). A user backfilling for the first time typically wants both; a daily incremental run wants neither.
+
+**TODO: retrofit existing loaders.** Several current loaders default to broad loads — they should be updated to follow this convention:
+
+- `loaders/statcast/statcast_pitches.py` — defaults to `--start 2008 --end <current_year>`. Switch default to recent window; add `--full-history` flag.
+- `loaders/statcast/statcast_*_leaderboards.py` — same pattern.
+- `loaders/lahman/lahman.py` — always replaces all CSVs in the data dir. Local files so less risky, but inconsistent with the convention.
+- `loaders/retrosheet/`, `loaders/baseball_reference/`, `loaders/fangraphs/`, `loaders/chadwick/` — audit each.
+
 # dlt patterns
 
 ## Full refresh
