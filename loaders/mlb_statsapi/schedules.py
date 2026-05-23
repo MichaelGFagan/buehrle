@@ -19,6 +19,7 @@ import polars as pl
 import pyarrow as pa
 import requests
 
+from loaders.cli import add_date_args, add_season_args, resolve_scope, validate_scope_args
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
@@ -268,60 +269,17 @@ def schedules_source(seasons: list[int] | None = None,
     return schedules, schedules_linescore_innings, schedules_officials
 
 
-def _parse_args() -> argparse.Namespace:
+if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--season', type=int)
-    parser.add_argument('--start-season', type=int)
-    parser.add_argument('--end-season', type=int)
-    parser.add_argument('--date')
-    parser.add_argument('--start-date')
-    parser.add_argument('--end-date')
-    parser.add_argument('--full-history', action='store_true',
-                        help=f'Backfill from {EARLIEST_SEASON} through the current year.')
+    add_season_args(parser, EARLIEST_SEASON)
+    add_date_args(parser)
     parser.add_argument('--full-refresh', action='store_true')
     args = parser.parse_args()
-
-    season_args = any([args.season, args.start_season, args.end_season])
-    date_args = any([args.date, args.start_date, args.end_date])
-    if season_args and date_args:
-        parser.error('Cannot mix season args (--season, --start-season, --end-season) with date args (--date, --start-date, --end-date)')
-    if args.full_history and (season_args or date_args):
-        parser.error('--full-history is mutually exclusive with season and date args')
-
-    if (args.start_season is None) != (args.end_season is None):
-        parser.error('--start-season and --end-season must be provided together')
-    if (args.start_date is None) != (args.end_date is None):
-        parser.error('--start-date and --end-date must be provided together')
-    if args.date and (args.start_date or args.end_date):
-        parser.error('--date is mutually exclusive with --start-date / --end-date')
-    if args.season and (args.start_season or args.end_season):
-        parser.error('--season is mutually exclusive with --start-season / --end-season')
-
-    return args
-
-
-def _resolve_seasons_and_dates(args: argparse.Namespace) -> tuple[list[int] | None, tuple[datetime.date, datetime.date] | None]:
-    if args.full_history:
-        return list(range(EARLIEST_SEASON, datetime.date.today().year + 1)), None
-    if args.date:
-        d = datetime.date.fromisoformat(args.date)
-        return None, (d, d)
-    if args.start_date:
-        return None, (datetime.date.fromisoformat(args.start_date),
-                      datetime.date.fromisoformat(args.end_date))
-    if args.season:
-        return [args.season], None
-    if args.start_season:
-        return list(range(args.start_season, args.end_season + 1)), None
-    return [datetime.date.today().year], None
-
-
-if __name__ == '__main__':
-    args = _parse_args()
-    seasons, date_range = _resolve_seasons_and_dates(args)
+    validate_scope_args(parser, args)
+    scope = resolve_scope(args, EARLIEST_SEASON)
 
     pipeline = make_pipeline('mlb_statsapi_schedules')
-    source = schedules_source(seasons=seasons, date_range=date_range)
+    source = schedules_source(seasons=scope['seasons'], date_range=scope['dates'])
 
     if args.full_refresh:
         handle_full_refresh(pipeline)

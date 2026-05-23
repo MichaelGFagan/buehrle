@@ -8,12 +8,16 @@ from calendar import monthrange
 from dlt.sources.helpers import requests
 from typing import Iterator
 
+from loaders.cli import add_date_args, add_season_args, resolve_dates, validate_scope_args
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
 TODAY = datetime.date.today()
 SEASON_START_MONTH = 3
+SEASON_END_MONTH = 12
+SEASON_END_DAY = 31
+EARLIEST_SEASON = 2008  # Statcast era
 BASE_STATCAST_URL = 'https://baseballsavant.mlb.com/statcast_search/csv'
 
 COLUMN_RENAMES = {
@@ -78,26 +82,25 @@ def statcast_source(start_date: datetime.date, end_date: datetime.date, update: 
     yield pitches(start_date, end_date, update)
 
 
-def _parse_date(s: str, end: bool = False) -> datetime.date:
-    if len(s) == 4:
-        year = int(s)
-        return datetime.date(year, 12, 31) if end else datetime.date(year, SEASON_START_MONTH, 1)
-    return datetime.date.fromisoformat(s)
+def _season_bounds(year: int) -> tuple[datetime.date, datetime.date]:
+    return datetime.date(year, SEASON_START_MONTH, 1), datetime.date(year, SEASON_END_MONTH, SEASON_END_DAY)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', default=str(2008))
-    parser.add_argument('--end', default=str(TODAY.year))
+    add_season_args(parser, EARLIEST_SEASON)
+    add_date_args(parser)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
+    validate_scope_args(parser, args)
+    start_date, end_date = resolve_dates(args, EARLIEST_SEASON, _season_bounds)
 
     pipeline = make_pipeline('statcast_pitches')
 
     source = statcast_source(
-        start_date=_parse_date(args.start),
-        end_date=_parse_date(args.end, end=True),
+        start_date=start_date,
+        end_date=end_date,
         update=args.update,
     )
 

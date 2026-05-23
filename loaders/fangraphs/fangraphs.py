@@ -1,3 +1,4 @@
+import argparse
 import logging
 import re
 import time
@@ -9,10 +10,12 @@ from enum import Enum
 from itertools import product
 from typing import Iterator
 
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
 from loaders.dlt_utils import handle_full_refresh, make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
+EARLIEST_SEASON = 1871
 BASE_FANGRAPHS_URL = 'https://www.fangraphs.com/api/leaders/major-league/data'
 
 
@@ -151,18 +154,19 @@ def fangraphs(
 
 
 if __name__ == '__main__':
-    import argparse
-
     parser = argparse.ArgumentParser()
+    add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
+    validate_season_args(parser, args)
+    start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
     pipeline = make_pipeline('fangraphs')
 
     source = fangraphs(
-        start_season=1871,
-        end_season=2026,
+        start_season=start_season,
+        end_season=end_season,
         stats=[FangraphsStat.BATTING, FangraphsStat.PITCHING, FangraphsStat.FIELDING],
         # postseason=[FangraphsPlayoff.REGULAR_SEASON],
         postseason=[FangraphsPlayoff.REGULAR_SEASON, FangraphsPlayoff.WILD_CARD, FangraphsPlayoff.DIVISION_SERIES, FangraphsPlayoff.LEAGUE_CHAMPIONSHIP_SERIES, FangraphsPlayoff.WORLD_SERIES],

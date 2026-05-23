@@ -8,11 +8,13 @@ import pyarrow as pa
 from enum import Enum
 from typing import Iterator
 
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
 from loaders.retrosheet.retrosheet_sync import REPO_DIR, check
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
+EARLIEST_SEASON = 1871
 SEASON_PATH = os.path.join(REPO_DIR, 'seasons/{season}/GL{season}.TXT')
 PLAYOFF_PATH = os.path.join(REPO_DIR, 'gamelog/GL{suffix}.TXT')
 
@@ -143,18 +145,19 @@ def retrosheet(start_season: int, end_season: int, playoffs: str = 'include', up
 if __name__ == '__main__':
     check()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', type=int, default=1871)
-    parser.add_argument('--end', type=int, default=2025)
+    add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--playoffs', choices=['include', 'only'], default='include')
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
+    validate_season_args(parser, args)
+    start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
     pipeline = make_pipeline('retrosheet')
 
     source = retrosheet(
-        start_season=args.start,
-        end_season=args.end,
+        start_season=start_season,
+        end_season=end_season,
         playoffs=args.playoffs,
         update=args.update,
     )

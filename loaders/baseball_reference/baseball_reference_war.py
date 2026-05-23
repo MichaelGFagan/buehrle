@@ -1,3 +1,4 @@
+import argparse
 import logging
 from io import StringIO
 
@@ -6,7 +7,7 @@ import pandas as pd
 
 from dlt.sources.helpers import requests
 
-from loaders.dlt_utils import make_pipeline
+from loaders.dlt_utils import handle_full_refresh, make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -36,7 +37,14 @@ def baseball_reference_war():
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--full-refresh', action='store_true')
+    args = parser.parse_args()
+
     pipeline = make_pipeline('baseball_reference')
+
+    if args.full_refresh:
+        handle_full_refresh(pipeline)
 
     load_info = pipeline.run(baseball_reference_war())
     print(load_info)

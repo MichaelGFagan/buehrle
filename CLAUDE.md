@@ -1,21 +1,52 @@
 # Loader CLI conventions
 
-Loaders should default to a small/recent scope (e.g. current season, current month) and require an explicit flag for a full backfill. This protects against accidentally hammering external APIs or producing large loads.
+Loaders should default to a small/recent scope (e.g. current season) and require an explicit flag for a full backfill. This protects against accidentally hammering external APIs or producing large loads.
 
 Standard flags (see `loaders/mlb_statsapi/schedules.py` for the reference implementation):
 
-- **No args** → narrow default scope (e.g. current season).
+- **No args** → narrow default scope (current season).
+- **`--season` / `--start-season` / `--end-season`** → scope to a specific season or season range.
 - **`--full-history`** → backfill from the earliest available data through the present. Mutually exclusive with `--season`/`--date` args.
 - **`--full-refresh`** → orthogonal to scope: drops the pipeline's destination schema before loading. Combine with `--full-history` for a clean full backfill.
 
 The `--full-history` and `--full-refresh` flags are independent because they answer different questions (*what range to load* vs. *whether to drop existing data first*). A user backfilling for the first time typically wants both; a daily incremental run wants neither.
 
-**TODO: retrofit existing loaders.** Several current loaders default to broad loads — they should be updated to follow this convention:
+Use `loaders/cli.py` to wire up the standard scope args. For season-only loaders:
 
-- `loaders/statcast/statcast_pitches.py` — defaults to `--start 2008 --end <current_year>`. Switch default to recent window; add `--full-history` flag.
-- `loaders/statcast/statcast_*_leaderboards.py` — same pattern.
-- `loaders/lahman/lahman.py` — always replaces all CSVs in the data dir. Local files so less risky, but inconsistent with the convention.
-- `loaders/retrosheet/`, `loaders/baseball_reference/`, `loaders/fangraphs/`, `loaders/chadwick/` — audit each.
+```python
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
+
+parser = argparse.ArgumentParser()
+add_season_args(parser, EARLIEST_SEASON)
+parser.add_argument('--full-refresh', action='store_true')
+parser.add_argument('--update', action='store_true')
+args = parser.parse_args()
+validate_season_args(parser, args)
+start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
+```
+
+For loaders that also accept date args, add `add_date_args` and use `validate_scope_args` (which subsumes `validate_season_args`). The resolver depends on whether the backend can consume seasons natively or needs dates:
+
+- **Backend accepts both seasons and dates** (e.g. MLB Stats API — see `loaders/mlb_statsapi/schedules.py`): use `resolve_scope`, which returns `{'seasons': list[int] | None, 'dates': (start, end) | None}` with exactly one key populated.
+- **Backend is date-only** (e.g. Statcast pitches — see `loaders/statcast/statcast_pitches.py`): use `resolve_dates(args, EARLIEST_SEASON, season_bounds)`, which always returns `(start_date, end_date)`. `season_bounds(year) -> (start_date, end_date)` is required because seasonal date windows vary per source.
+
+```python
+from loaders.cli import add_date_args, add_season_args, resolve_scope, validate_scope_args
+
+parser = argparse.ArgumentParser()
+add_season_args(parser, EARLIEST_SEASON)
+add_date_args(parser)
+parser.add_argument('--full-refresh', action='store_true')
+args = parser.parse_args()
+validate_scope_args(parser, args)
+scope = resolve_scope(args, EARLIEST_SEASON)  # or resolve_dates(...) for date-only backends
+```
+
+**Loaders intentionally exempt from this convention** (single-shot scrapes with no per-season slicing — they take `--full-refresh` only):
+
+- `loaders/baseball_reference/baseball_reference_war.py`
+- `loaders/chadwick/chadwick_register.py`
+- `loaders/lahman/lahman.py`
 
 # dlt patterns
 
@@ -80,10 +111,11 @@ Pattern:
 PRIMARY_KEYS = {'col_a', 'col_b'}
 
 schema = pa.schema([
-    f.with_type(pa.utf8()).with_nullable(f.name not in PRIMARY_KEYS)
-    if f.type == pa.large_utf8()
-    else f
+    (f.with_type(pa.utf8()) if f.type == pa.large_utf8() else f)
+        .with_nullable(f.name not in PRIMARY_KEYS)
     for f in table.schema
 ])
 table = table.cast(schema)
 ```
+
+In practice, prefer `loaders.dlt_utils.to_arrow(df, primary_keys)`, which encapsulates this.

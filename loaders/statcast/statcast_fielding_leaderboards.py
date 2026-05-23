@@ -3,6 +3,7 @@ import dlt
 
 from typing import Iterator
 
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
 from loaders.statcast._common import BASE_URL, SAVANT_HOST, TODAY, handle_full_refresh, make_pipeline, run_years
 
 STATCAST_START_YEAR = 2016  # OAA leaderboards begin 2016
@@ -91,16 +92,17 @@ def statcast_fielding_leaderboards(start_year: int, end_year: int, update: bool 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', type=int, default=STATCAST_START_YEAR)
-    parser.add_argument('--end', type=int, default=TODAY.year)
+    add_season_args(parser, STATCAST_START_YEAR)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     parser.add_argument('--resources', nargs='+', default=None)
     args = parser.parse_args()
+    validate_season_args(parser, args)
+    start_year, end_year = resolve_seasons(args, STATCAST_START_YEAR)
 
     pipeline = make_pipeline('statcast_fielding_leaderboards')
 
-    source = statcast_fielding_leaderboards(start_year=args.start, end_year=args.end, update=args.update)
+    source = statcast_fielding_leaderboards(start_year=start_year, end_year=end_year, update=args.update)
     if args.resources:
         source = source.with_resources(*args.resources)
 

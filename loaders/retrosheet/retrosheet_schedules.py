@@ -7,11 +7,13 @@ import pyarrow as pa
 
 from typing import Iterator
 
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
 from loaders.retrosheet.retrosheet_sync import REPO_DIR, sync
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
+EARLIEST_SEASON = 1877
 SCHEDULE_PATH = os.path.join(REPO_DIR, 'seasons/{season}/{season}schedule.csv')
 
 COLUMNS = [
@@ -62,17 +64,18 @@ def retrosheet_schedules(start_season: int, end_season: int, update: bool = Fals
 if __name__ == '__main__':
     sync()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', type=int, default=1877)
-    parser.add_argument('--end', type=int, default=2025)
+    add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
+    validate_season_args(parser, args)
+    start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
     pipeline = make_pipeline('retrosheet_schedules')
 
     source = retrosheet_schedules(
-        start_season=args.start,
-        end_season=args.end,
+        start_season=start_season,
+        end_season=end_season,
         update=args.update,
     )
 

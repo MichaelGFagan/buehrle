@@ -7,11 +7,13 @@ import pyarrow as pa
 
 from typing import Iterator
 
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
 from loaders.retrosheet.retrosheet_sync import REPO_DIR, check
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
+EARLIEST_SEASON = 1871
 COLUMN_RENAMES = {'ID': 'umpire_id', 'last': 'last_name', 'first': 'first_name'}
 PRIMARY_KEYS = {'umpire_id', 'season'}
 
@@ -54,17 +56,18 @@ def retrosheet_umpires(start_season: int, end_season: int, update: bool = False)
 if __name__ == '__main__':
     check()
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', type=int, default=1871)
-    parser.add_argument('--end', type=int, default=2025)
+    add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
     args = parser.parse_args()
+    validate_season_args(parser, args)
+    start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
     pipeline = make_pipeline('retrosheet_umpires')
 
     source = retrosheet_umpires(
-        start_season=args.start,
-        end_season=args.end,
+        start_season=start_season,
+        end_season=end_season,
         update=args.update,
     )
 

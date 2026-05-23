@@ -14,10 +14,12 @@ from enum import Enum
 from io import StringIO
 from typing import Iterator
 
+from loaders.cli import add_season_args, resolve_seasons, validate_season_args
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
+EARLIEST_SEASON = 1965
 BASE_URL = 'https://www.baseball-reference.com/draft/?year_ID={year}&draft_round={round}&draft_type={draft_type}&query_type=year_round'
 
 COLUMN_RENAMES = {
@@ -192,9 +194,7 @@ def baseball_reference_draft(
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--start', type=int, default=1965)
-    parser.add_argument('--end', type=int, default=2025)
-    parser.add_argument('--year', type=int)
+    add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--draft-types', nargs='+', default=None,
                         choices=[d.value for d in DraftType])
     parser.add_argument('--all-draft-types', action='store_true')
@@ -202,9 +202,8 @@ if __name__ == '__main__':
     parser.add_argument('--update', action='store_true')
     parser.add_argument('--full-refresh', action='store_true')
     args = parser.parse_args()
-
-    start_year = args.year if args.year else args.start
-    end_year = args.year if args.year else args.end
+    validate_season_args(parser, args)
+    start_year, end_year = resolve_seasons(args, EARLIEST_SEASON)
 
     rounds_filter = json.loads(args.rounds) if args.rounds else None
 
@@ -249,4 +248,4 @@ if __name__ == '__main__':
         print('\nTo retry:')
         for year, type_rounds in sorted(by_year.items()):
             rounds_json = json.dumps({dt: sorted(rnds) for dt, rnds in sorted(type_rounds.items())})
-            print(f"  python {sys.argv[0]} --year {year} --rounds '{rounds_json}' --update")
+            print(f"  python {sys.argv[0]} --season {year} --rounds '{rounds_json}' --update")
