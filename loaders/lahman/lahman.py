@@ -8,7 +8,6 @@ tables SABR adds surface as a warning rather than being silently picked up. Tabl
 buehrle_dbt/models/sources/lahman/_source_lahman.yml so dbt sources can be repointed cleanly.
 """
 
-import argparse
 import logging
 import os
 from typing import Iterator
@@ -17,6 +16,7 @@ import dlt
 import polars as pl
 import pyarrow as pa
 
+from loaders.cli import add_resources_arg, apply_resources
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
@@ -117,17 +117,20 @@ def lahman(data_dir: str):
         yield make_resource(table_name, csv_filename, columns)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('lahman', help='Lahman Baseball Database (CSV)')
     parser.add_argument('--data-dir', default=DEFAULT_DATA_DIR)
     parser.add_argument('--full-refresh', action='store_true')
-    args = parser.parse_args()
+    add_resources_arg(parser)
+    parser.set_defaults(func=lambda args: main(parser, args))
 
+
+def main(parser, args):
     data_dir = os.path.abspath(args.data_dir)
     _check_for_unmapped_csvs(data_dir)
 
     pipeline = make_pipeline('lahman')
-    source = lahman(data_dir=data_dir)
+    source = apply_resources(lahman(data_dir=data_dir), args)
 
     if args.full_refresh:
         handle_full_refresh(pipeline)

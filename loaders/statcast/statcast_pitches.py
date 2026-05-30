@@ -1,4 +1,3 @@
-import argparse
 import datetime
 import logging
 import dlt
@@ -86,13 +85,16 @@ def _season_bounds(year: int) -> tuple[datetime.date, datetime.date]:
     return datetime.date(year, SEASON_START_MONTH, 1), datetime.date(year, SEASON_END_MONTH, SEASON_END_DAY)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('statcast-pitches', help='Statcast pitch-level data')
     add_season_args(parser, EARLIEST_SEASON)
     add_date_args(parser)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     validate_scope_args(parser, args)
     start_date, end_date = resolve_dates(args, EARLIEST_SEASON, _season_bounds)
 

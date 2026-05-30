@@ -1,6 +1,5 @@
 import logging
 import os
-import runpy
 import sys
 
 import duckdb
@@ -8,6 +7,7 @@ import pyarrow as pa
 import pytest
 from dlt.extract.exceptions import ResourceExtractionError
 
+import loaders.__main__ as loaders_main
 from loaders.lahman import lahman
 
 
@@ -147,9 +147,9 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
 
     monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'lahman', '--data-dir', str(data_dir), '--full-refresh',
+        'buehrle', 'lahman', '--data-dir', str(data_dir), '--full-refresh',
     ])
-    runpy.run_module('loaders.lahman.lahman', run_name='__main__')
+    loaders_main.main()
 
 
 def test_main_warns_on_unmapped_csv(tmp_path, monkeypatch, fake_make_pipeline, caplog):
@@ -159,9 +159,9 @@ def test_main_warns_on_unmapped_csv(tmp_path, monkeypatch, fake_make_pipeline, c
     _write(str(data_dir), 'NewSabrTable.csv', 'a,b\n1,2\n')
 
     monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['lahman', '--data-dir', str(data_dir)])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'lahman', '--data-dir', str(data_dir)])
 
     with caplog.at_level(logging.WARNING):
-        runpy.run_module('loaders.lahman.lahman', run_name='__main__')
+        loaders_main.main()
 
     assert any('NewSabrTable.csv' in r.message for r in caplog.records)

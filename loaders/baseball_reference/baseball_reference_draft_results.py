@@ -1,8 +1,6 @@
-import argparse
 import json
 import logging
 import os
-import sys
 import time
 from collections import defaultdict
 import dlt
@@ -192,8 +190,8 @@ def baseball_reference_draft(
     yield draft_results(start_year, end_year, draft_types, update, rounds_filter, failed_rounds)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('baseball-reference-draft', help='Baseball-Reference draft results')
     add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--draft-types', nargs='+', default=None,
                         choices=[d.value for d in DraftType])
@@ -201,7 +199,10 @@ if __name__ == '__main__':
     parser.add_argument('--rounds', type=str, default=None)
     parser.add_argument('--update', action='store_true')
     parser.add_argument('--full-refresh', action='store_true')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     validate_season_args(parser, args)
     start_year, end_year = resolve_seasons(args, EARLIEST_SEASON)
 
@@ -248,4 +249,4 @@ if __name__ == '__main__':
         print('\nTo retry:')
         for year, type_rounds in sorted(by_year.items()):
             rounds_json = json.dumps({dt: sorted(rnds) for dt, rnds in sorted(type_rounds.items())})
-            print(f"  python {sys.argv[0]} --season {year} --rounds '{rounds_json}' --update")
+            print(f"  buehrle baseball-reference-draft --season {year} --rounds '{rounds_json}' --update")

@@ -5,7 +5,6 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "argparse>=1.4.0",
     "dbt-duckdb>=1.10.1",
     "dlt[duckdb]>=1.24.0",
     "pandas>=2.3.3",
@@ -14,6 +13,9 @@ dependencies = [
     "pybaseball",
     "requests>=2.32.5",
 ]
+
+[project.scripts]
+buehrle = "loaders.__main__:main"
 
 [build-system]
 requires = ["hatchling"]

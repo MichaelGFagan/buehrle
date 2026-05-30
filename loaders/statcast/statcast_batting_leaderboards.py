@@ -1,9 +1,8 @@
-import argparse
 import dlt
 
 from typing import Iterator
 
-from loaders.cli import add_season_args, resolve_seasons, validate_season_args
+from loaders.cli import add_resources_arg, add_season_args, apply_resources, resolve_seasons, validate_season_args
 from loaders.statcast._common import BASE_URL, TODAY, handle_full_refresh, make_pipeline, run_years
 
 STATCAST_START_YEAR = 2015
@@ -69,23 +68,25 @@ def statcast_batting_leaderboards(start_year: int, end_year: int, update: bool =
     yield bat_tracking(start_year, end_year, update, game_type)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('statcast-batting', help='Statcast batting leaderboards')
     add_season_args(parser, STATCAST_START_YEAR)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
-    parser.add_argument('--resources', nargs='+', default=None)
+    add_resources_arg(parser)
     parser.add_argument('--game-type', choices=['Regular', 'Playoff', 'all'], default='Regular',
                         help="Savant gameType filter for bat_tracking (default 'Regular')")
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     validate_season_args(parser, args)
     start_year, end_year = resolve_seasons(args, STATCAST_START_YEAR)
 
     pipeline = make_pipeline('statcast_batting_leaderboards')
 
     source = statcast_batting_leaderboards(start_year=start_year, end_year=end_year, update=args.update, game_type=args.game_type)
-    if args.resources:
-        source = source.with_resources(*args.resources)
+    source = apply_resources(source, args)
 
     if args.full_refresh:
         handle_full_refresh(pipeline)

@@ -1,12 +1,11 @@
-import argparse
 import datetime
-import runpy
 import sys
 from unittest.mock import MagicMock
 
 import duckdb
 import pytest
 
+import loaders.__main__ as loaders_main
 from loaders.mlb_statsapi import schedules
 
 
@@ -305,99 +304,6 @@ def test_games_from_payloads_handles_empty_payload():
     assert schedules._games_from_payloads([{'dates': []}]) == []
 
 
-# ---------- _resolve_seasons_and_dates ----------
-
-def _ns(**kwargs):
-    defaults = dict(season=None, start_season=None, end_season=None,
-                    date=None, start_date=None, end_date=None,
-                    full_history=False, full_refresh=False)
-    defaults.update(kwargs)
-    return argparse.Namespace(**defaults)
-
-
-def test_resolve_no_args_uses_current_season():
-    seasons, date_range = schedules._resolve_seasons_and_dates(_ns())
-    assert seasons == [datetime.date.today().year]
-    assert date_range is None
-
-
-def test_resolve_single_season():
-    seasons, date_range = schedules._resolve_seasons_and_dates(_ns(season=2024))
-    assert seasons == [2024]
-    assert date_range is None
-
-
-def test_resolve_season_range():
-    seasons, date_range = schedules._resolve_seasons_and_dates(_ns(start_season=2022, end_season=2024))
-    assert seasons == [2022, 2023, 2024]
-    assert date_range is None
-
-
-def test_resolve_single_date():
-    seasons, date_range = schedules._resolve_seasons_and_dates(_ns(date='2026-05-08'))
-    assert seasons is None
-    assert date_range == (datetime.date(2026, 5, 8), datetime.date(2026, 5, 8))
-
-
-def test_resolve_date_range():
-    seasons, date_range = schedules._resolve_seasons_and_dates(
-        _ns(start_date='2026-05-01', end_date='2026-05-08'))
-    assert seasons is None
-    assert date_range == (datetime.date(2026, 5, 1), datetime.date(2026, 5, 8))
-
-
-def test_resolve_full_history_spans_earliest_to_current_year():
-    seasons, date_range = schedules._resolve_seasons_and_dates(_ns(full_history=True))
-    assert seasons[0] == schedules.EARLIEST_SEASON
-    assert seasons[-1] == datetime.date.today().year
-    assert len(seasons) == datetime.date.today().year - schedules.EARLIEST_SEASON + 1
-    assert date_range is None
-
-
-# ---------- _parse_args ----------
-
-def test_parse_args_rejects_mixed_season_and_date(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--season', '2024', '--date', '2024-05-01'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
-def test_parse_args_rejects_partial_season_range(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--start-season', '2022'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
-def test_parse_args_rejects_partial_date_range(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--end-date', '2026-05-08'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
-def test_parse_args_rejects_season_with_season_range(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--season', '2024', '--start-season', '2022', '--end-season', '2024'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
-def test_parse_args_rejects_date_with_date_range(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--date', '2026-05-08', '--start-date', '2026-05-01', '--end-date', '2026-05-08'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
-def test_parse_args_rejects_full_history_with_season(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--full-history', '--season', '2024'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
-def test_parse_args_rejects_full_history_with_date(monkeypatch):
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--full-history', '--date', '2026-05-08'])
-    with pytest.raises(SystemExit):
-        schedules._parse_args()
-
-
 # ---------- _fetch_payloads ----------
 
 def test_fetch_payloads_one_call_per_season(monkeypatch):
@@ -497,10 +403,10 @@ def test_pipeline_merges_on_rerun(tmp_path, fake_make_pipeline, monkeypatch):
 def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
     monkeypatch.setattr(schedules.requests, 'get',
                         lambda *a, **kw: _mock_response(_payload([_hydrated_game(1)])))
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['schedules', '--date', '2026-05-08', '--full-refresh'])
+    monkeypatch.setattr(schedules, 'make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'mlb-statsapi-schedules', '--date', '2026-05-08', '--full-refresh'])
 
-    runpy.run_module('loaders.mlb_statsapi.schedules', run_name='__main__')
+    loaders_main.main()
 
     con = duckdb.connect(str(tmp_path / 'test.duckdb'))
     cnt = con.execute('SELECT COUNT(*) FROM mlb_statsapi_schedules.schedules').fetchone()[0]

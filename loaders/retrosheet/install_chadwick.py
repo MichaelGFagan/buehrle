@@ -3,7 +3,6 @@
 Install Chadwick Bureau tools (cwevent, cwgame, etc.) via Homebrew,
 suppressing the auto-update step to reduce overhead.
 """
-import argparse
 import os
 import shutil
 import subprocess
@@ -23,8 +22,11 @@ def install(force: bool = False) -> None:
     subprocess.run(['brew', 'install', 'chadwick'], env=env, check=True)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Install Chadwick tools via Homebrew.')
+def register(subparsers):
+    parser = subparsers.add_parser('install-chadwick', help='Install Chadwick tools via Homebrew')
     parser.add_argument('--force', action='store_true', help='Reinstall even if cwevent is already on PATH.')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     install(force=args.force)

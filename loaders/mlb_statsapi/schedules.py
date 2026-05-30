@@ -9,7 +9,6 @@ One HTTP call per season (or one call for a date / date range) populates three t
 See docs/mlb_statsapi.md for endpoint shape, hydrations, and the deferred-sidecar list.
 """
 
-import argparse
 import datetime
 import logging
 from typing import Iterator
@@ -19,7 +18,7 @@ import polars as pl
 import pyarrow as pa
 import requests
 
-from loaders.cli import add_date_args, add_season_args, resolve_scope, validate_scope_args
+from loaders.cli import add_date_args, add_resources_arg, add_season_args, apply_resources, resolve_scope, validate_scope_args
 from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
@@ -269,17 +268,22 @@ def schedules_source(seasons: list[int] | None = None,
     return schedules, schedules_linescore_innings, schedules_officials
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('mlb-statsapi-schedules', help='MLB Stats API: schedules endpoint')
     add_season_args(parser, EARLIEST_SEASON)
     add_date_args(parser)
     parser.add_argument('--full-refresh', action='store_true')
-    args = parser.parse_args()
+    add_resources_arg(parser)
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     validate_scope_args(parser, args)
     scope = resolve_scope(args, EARLIEST_SEASON)
 
     pipeline = make_pipeline('mlb_statsapi_schedules')
     source = schedules_source(seasons=scope['seasons'], date_range=scope['dates'])
+    source = apply_resources(source, args)
 
     if args.full_refresh:
         handle_full_refresh(pipeline)
