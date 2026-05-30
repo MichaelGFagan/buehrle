@@ -1,4 +1,3 @@
-import argparse
 import logging
 from io import StringIO
 
@@ -7,6 +6,7 @@ import pandas as pd
 
 from dlt.sources.helpers import requests
 
+from loaders.cli import add_resources_arg, apply_resources
 from loaders.dlt_utils import handle_full_refresh, make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
@@ -36,15 +36,20 @@ def baseball_reference_war():
         yield _make_resource(stat, url)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('baseball-reference-war', help='Baseball-Reference WAR')
     parser.add_argument('--full-refresh', action='store_true')
-    args = parser.parse_args()
+    add_resources_arg(parser)
+    parser.set_defaults(func=lambda args: main(parser, args))
 
+
+def main(parser, args):
     pipeline = make_pipeline('baseball_reference')
+
+    source = apply_resources(baseball_reference_war(), args)
 
     if args.full_refresh:
         handle_full_refresh(pipeline)
 
-    load_info = pipeline.run(baseball_reference_war())
+    load_info = pipeline.run(source)
     print(load_info)

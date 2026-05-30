@@ -1,4 +1,3 @@
-import argparse
 import io
 import logging
 import os
@@ -96,19 +95,21 @@ def retrosheet_events(start_season: int, end_season: int, update: bool = False):
     yield game_logs_deduced(start_season, end_season, update)
 
 
-if __name__ == '__main__':
-    if not shutil.which('cwevent'):
-        sys.exit(
-            'cwevent not found. Install Chadwick by running:\n'
-            '  python loaders/retrosheet/install_chadwick.py'
-        )
-    check()
-
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('retrosheet-events', help='Retrosheet events (requires Chadwick cwevent)')
     add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
+    if not shutil.which('cwevent'):
+        sys.exit(
+            'cwevent not found. Install Chadwick by running:\n'
+            '  buehrle install-chadwick'
+        )
+    check()
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 

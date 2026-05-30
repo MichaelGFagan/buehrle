@@ -1,13 +1,14 @@
 import re
-import runpy
 import sys
 
 import dlt
 import duckdb
 import responses
 
+import loaders.__main__ as loaders_main
 from loaders.dlt_utils import handle_full_refresh
 from loaders.statcast import _common
+from loaders.statcast import statcast_batting_leaderboards as batting_mod
 from loaders.statcast.statcast_batting_leaderboards import statcast_batting_leaderboards
 
 STUB_BODY = 'player_id,pitcher,pitcher_id,entity_id,resp_fielder_id,id,pitch_type\nstub,stub,stub,stub,stub,stub,FF'
@@ -134,9 +135,9 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
     monkeypatch.setattr('time.sleep', lambda s: None)
     _mock_year(2023, 'player_id,abs\n100,500')
 
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(batting_mod, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'statcast_batting_leaderboards', '--start', '2023', '--end', '2023',
+        'buehrle', 'statcast-batting', '--season', '2023',
         '--resources', 'exit_velo_barrels', '--full-refresh',
     ])
-    runpy.run_module('loaders.statcast.statcast_batting_leaderboards', run_name='__main__')
+    loaders_main.main()

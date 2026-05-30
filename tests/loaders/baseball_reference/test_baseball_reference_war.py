@@ -1,10 +1,11 @@
-import runpy
 import sys
 
 import dlt
 import duckdb
 import responses
 
+import loaders.__main__ as loaders_main
+from loaders.baseball_reference import baseball_reference_war as bbref_war
 from loaders.baseball_reference.baseball_reference_war import URLS, baseball_reference_war
 
 
@@ -47,6 +48,6 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
     responses.add(responses.GET, URLS['batting'], body='name_common,age,WAR\nMike Trout,28,8.5', status=200)
     responses.add(responses.GET, URLS['pitching'], body='name_common,age,WAR\nJake deGrom,30,7.2', status=200)
 
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['baseball_reference_war'])
-    runpy.run_module('loaders.baseball_reference.baseball_reference_war', run_name='__main__')
+    monkeypatch.setattr(bbref_war, 'make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'baseball-reference-war'])
+    loaders_main.main()

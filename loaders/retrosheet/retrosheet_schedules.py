@@ -1,4 +1,3 @@
-import argparse
 import logging
 import os
 import dlt
@@ -61,13 +60,16 @@ def retrosheet_schedules(start_season: int, end_season: int, update: bool = Fals
     yield schedules(start_season, end_season, update)
 
 
-if __name__ == '__main__':
-    sync()
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('retrosheet-schedules', help='Retrosheet schedules')
     add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
+    sync()
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 

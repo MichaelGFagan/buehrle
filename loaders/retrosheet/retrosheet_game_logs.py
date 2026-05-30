@@ -1,4 +1,3 @@
-import argparse
 import logging
 import os
 import dlt
@@ -142,14 +141,17 @@ def retrosheet(start_season: int, end_season: int, playoffs: str = 'include', up
     yield game_logs(start_season, end_season, playoffs, update)
 
 
-if __name__ == '__main__':
-    check()
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('retrosheet-game-logs', help='Retrosheet game logs')
     add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--playoffs', choices=['include', 'only'], default='include')
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
+    check()
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 

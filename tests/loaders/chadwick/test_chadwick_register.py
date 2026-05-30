@@ -1,4 +1,3 @@
-import runpy
 import sys
 
 import dlt
@@ -6,6 +5,7 @@ import duckdb
 import pyarrow as pa
 import responses
 
+import loaders.__main__ as loaders_main
 from loaders.chadwick import chadwick_register
 
 
@@ -108,6 +108,6 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
     _mock('0', body='key_uuid,name\n0001,Alice')
     _mock('1', status=404)
 
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['chadwick_register', '--full-refresh'])
-    runpy.run_module('loaders.chadwick.chadwick_register', run_name='__main__')
+    monkeypatch.setattr(chadwick_register, 'make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'chadwick-register', '--full-refresh'])
+    loaders_main.main()

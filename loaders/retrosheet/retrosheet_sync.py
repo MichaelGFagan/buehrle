@@ -17,7 +17,7 @@ def check() -> None:
     if not os.path.isdir(os.path.join(REPO_DIR, '.git')):
         sys.exit(
             f'Retrosheet repo not found at {REPO_DIR}.\n'
-            'Run: python loaders/retrosheet/retrosheet_sync.py'
+            'Run: buehrle retrosheet-sync'
         )
 
 
@@ -34,5 +34,10 @@ def sync():
     logging.info('Done.')
 
 
-if __name__ == '__main__':
+def register(subparsers):
+    parser = subparsers.add_parser('retrosheet-sync', help='Clone/update the Chadwick retrosheet repo')
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     sync()

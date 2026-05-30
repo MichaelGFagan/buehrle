@@ -1,5 +1,4 @@
 import datetime
-import runpy
 import sys
 
 import dlt
@@ -9,20 +8,11 @@ import pyarrow as pa
 import pytest
 import responses
 
+import loaders.__main__ as loaders_main
 from loaders.dlt_utils import to_arrow
 from loaders.statcast import statcast_pitches as sp
 
 URL = sp.BASE_STATCAST_URL
-
-
-@pytest.mark.parametrize('s, end, expected', [
-    ('2024', False, datetime.date(2024, 3, 1)),
-    ('2024', True, datetime.date(2024, 12, 31)),
-    ('2024-05-15', False, datetime.date(2024, 5, 15)),
-    ('2024-05-15', True, datetime.date(2024, 5, 15)),
-])
-def test_parse_date(s, end, expected):
-    assert sp._parse_date(s, end=end) == expected
 
 
 @responses.activate
@@ -130,8 +120,9 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
         status=200,
     )
 
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(sp, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'statcast_pitches', '--start', '2024-04-01', '--end', '2024-04-15', '--full-refresh',
+        'buehrle', 'statcast-pitches',
+        '--start-date', '2024-04-01', '--end-date', '2024-04-15', '--full-refresh',
     ])
-    runpy.run_module('loaders.statcast.statcast_pitches', run_name='__main__')
+    loaders_main.main()

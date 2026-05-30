@@ -1,4 +1,3 @@
-import argparse
 import logging
 import re
 import time
@@ -10,7 +9,7 @@ from enum import Enum
 from itertools import product
 from typing import Iterator
 
-from loaders.cli import add_season_args, resolve_seasons, validate_season_args
+from loaders.cli import add_resources_arg, add_season_args, apply_resources, resolve_seasons, validate_season_args
 from loaders.dlt_utils import handle_full_refresh, make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
@@ -153,12 +152,16 @@ def fangraphs(
         yield _make_resource(stat, start_season, end_season, postseason, update)
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('fangraphs', help='Fangraphs leaderboards (bat/pit/fld)')
     add_season_args(parser, EARLIEST_SEASON)
     parser.add_argument('--full-refresh', action='store_true')
     parser.add_argument('--update', action='store_true')
-    args = parser.parse_args()
+    add_resources_arg(parser)
+    parser.set_defaults(func=lambda args: main(parser, args))
+
+
+def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
@@ -172,6 +175,7 @@ if __name__ == '__main__':
         postseason=[FangraphsPlayoff.REGULAR_SEASON, FangraphsPlayoff.WILD_CARD, FangraphsPlayoff.DIVISION_SERIES, FangraphsPlayoff.LEAGUE_CHAMPIONSHIP_SERIES, FangraphsPlayoff.WORLD_SERIES],
         update=args.update,
     )
+    source = apply_resources(source, args)
 
     if args.full_refresh:
         handle_full_refresh(pipeline)

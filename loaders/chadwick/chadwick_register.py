@@ -1,4 +1,3 @@
-import argparse
 import logging
 import string
 import dlt
@@ -43,11 +42,13 @@ def chadwick_register():
     yield people()
 
 
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+def register(subparsers):
+    parser = subparsers.add_parser('chadwick-register', help='Chadwick Bureau player register')
     parser.add_argument('--full-refresh', action='store_true')
-    args = parser.parse_args()
+    parser.set_defaults(func=lambda args: main(parser, args))
 
+
+def main(parser, args):
     pipeline = make_pipeline('chadwick_register')
 
     source = chadwick_register()

@@ -1,4 +1,3 @@
-import runpy
 import shutil
 import subprocess
 import sys
@@ -8,6 +7,7 @@ import duckdb
 import pyarrow as pa
 import pytest
 
+import loaders.__main__ as loaders_main
 from loaders.retrosheet import retrosheet_events as ev
 
 
@@ -101,9 +101,9 @@ def test_pipeline_loads_event_data(tmp_path, monkeypatch):
 
 def test_main_exits_when_cwevent_missing(monkeypatch):
     monkeypatch.setattr(shutil, 'which', lambda cmd: None)
-    monkeypatch.setattr(sys, 'argv', ['retrosheet_events'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-events'])
     with pytest.raises(SystemExit):
-        runpy.run_module('loaders.retrosheet.retrosheet_events', run_name='__main__')
+        loaders_main.main()
 
 
 def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
@@ -113,10 +113,10 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
 
     monkeypatch.setattr(shutil, 'which', lambda cmd: '/usr/bin/cwevent')
     monkeypatch.setattr('loaders.retrosheet.retrosheet_sync.REPO_DIR', str(tmp_path))
-    monkeypatch.setattr('loaders.retrosheet.retrosheet_sync.check', lambda: None)
+    monkeypatch.setattr(ev, 'check', lambda: None)
     monkeypatch.setattr(subprocess, 'run', lambda *a, **kw: _completed(
         stdout='GAME_ID,BAT_ID\nNYY202404010,trout\n',
     ))
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['retrosheet_events', '--year', '2024', '--full-refresh'])
-    runpy.run_module('loaders.retrosheet.retrosheet_events', run_name='__main__')
+    monkeypatch.setattr(ev, 'make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-events', '--season', '2024', '--full-refresh'])
+    loaders_main.main()

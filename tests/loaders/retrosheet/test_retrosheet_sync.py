@@ -1,7 +1,9 @@
 import subprocess
+import sys
 
 import pytest
 
+import loaders.__main__ as loaders_main
 from loaders.retrosheet import retrosheet_sync
 
 
@@ -46,11 +48,11 @@ def test_sync_pulls_when_repo_present(tmp_path, monkeypatch):
 
 
 def test_main_invokes_sync(tmp_path, monkeypatch):
-    import runpy
     (tmp_path / '.git').mkdir()
     monkeypatch.setattr(retrosheet_sync, 'REPO_DIR', str(tmp_path))
     monkeypatch.setattr(
         subprocess, 'run',
         lambda args, **kw: subprocess.CompletedProcess(args=args, returncode=0),
     )
-    runpy.run_module('loaders.retrosheet.retrosheet_sync', run_name='__main__')
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-sync'])
+    loaders_main.main()

@@ -1,12 +1,13 @@
 import re
-import runpy
 import sys
 
 import dlt
 import duckdb
 import responses
 
+import loaders.__main__ as loaders_main
 from loaders.statcast import _common
+from loaders.statcast import statcast_fielding_leaderboards as fielding_mod
 from loaders.statcast.statcast_fielding_leaderboards import statcast_fielding_leaderboards
 
 STUB_BODY = 'player_id,pitcher,pitcher_id,entity_id,resp_fielder_id,id,pitch_type\nstub,stub,stub,stub,stub,stub,FF'
@@ -64,9 +65,9 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
         status=200,
     )
 
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(fielding_mod, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'statcast_fielding_leaderboards', '--start', '2023', '--end', '2023',
+        'buehrle', 'statcast-fielding', '--season', '2023',
         '--resources', 'outfield_catch_prob', '--full-refresh',
     ])
-    runpy.run_module('loaders.statcast.statcast_fielding_leaderboards', run_name='__main__')
+    loaders_main.main()

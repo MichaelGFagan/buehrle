@@ -1,6 +1,5 @@
 import json
 import re
-import runpy
 import sys
 
 import pandas as pd
@@ -8,7 +7,10 @@ import pytest
 import requests
 import responses
 
+import loaders.__main__ as loaders_main
 from loaders.baseball_reference import baseball_reference_draft_results as draft
+
+REAL_DRAFT_YEARS = dict(draft.DRAFT_YEARS)  # capture before any fixture patches it
 
 DRAFT_YEARS_FIXTURE = {
     'test_type': {
@@ -24,6 +26,13 @@ DRAFT_YEARS_FIXTURE = {
 @pytest.fixture(autouse=True)
 def patched_draft_years(monkeypatch):
     monkeypatch.setattr(draft, 'DRAFT_YEARS', DRAFT_YEARS_FIXTURE)
+
+
+@pytest.fixture
+def real_draft_years(monkeypatch):
+    """Override the autouse patched_draft_years with real values — needed for main tests
+    that mock URLs against real draft types like 'junreg'."""
+    monkeypatch.setattr(draft, 'DRAFT_YEARS', REAL_DRAFT_YEARS)
 
 
 @pytest.mark.parametrize('year, expected', [
@@ -164,25 +173,25 @@ def test_fetch_round_returns_none_when_no_rows_match_year():
 
 
 @responses.activate
-def test_main_with_failed_rounds(monkeypatch, fake_make_pipeline, capsys):
+def test_main_with_failed_rounds(monkeypatch, fake_make_pipeline, real_draft_years, capsys):
     # 500 response — _fetch_round raises HTTPError, retry treats it as non-retriable, resource catches it
     responses.add(responses.GET, re.compile(r'https://www\.baseball-reference\.com/draft/.*'), status=500)
 
     monkeypatch.setattr('time.sleep', lambda s: None)
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'baseball_reference_draft_results',
-        '--year', '2024',
+        'buehrle', 'baseball-reference-draft',
+        '--season', '2024',
         '--rounds', json.dumps({'junreg': [1]}),
     ])
-    runpy.run_module('loaders.baseball_reference.baseball_reference_draft_results', run_name='__main__')
+    loaders_main.main()
 
     captured = capsys.readouterr()
     assert 'Failed rounds:' in captured.out
 
 
 @responses.activate
-def test_main_with_draft_types_flag(monkeypatch, fake_make_pipeline):
+def test_main_with_draft_types_flag(monkeypatch, fake_make_pipeline, real_draft_years):
     html = (
         '<table>'
         '<thead><tr><th>Year</th><th>Rnd</th><th>RdPck</th><th>Name</th><th>Tm</th></tr></thead>'
@@ -194,17 +203,17 @@ def test_main_with_draft_types_flag(monkeypatch, fake_make_pipeline):
     responses.add(responses.GET, re.compile(r'.*'), body=html, status=200)
 
     monkeypatch.setattr('time.sleep', lambda s: None)
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'baseball_reference_draft_results',
-        '--year', '2024',
+        'buehrle', 'baseball-reference-draft',
+        '--season', '2024',
         '--draft-types', 'junreg',
     ])
-    runpy.run_module('loaders.baseball_reference.baseball_reference_draft_results', run_name='__main__')
+    loaders_main.main()
 
 
 @responses.activate
-def test_main_with_all_draft_types_flag(monkeypatch, fake_make_pipeline):
+def test_main_with_all_draft_types_flag(monkeypatch, fake_make_pipeline, real_draft_years):
     html = (
         '<table>'
         '<thead><tr><th>Year</th><th>Rnd</th><th>RdPck</th><th>Name</th><th>Tm</th></tr></thead>'
@@ -216,17 +225,17 @@ def test_main_with_all_draft_types_flag(monkeypatch, fake_make_pipeline):
     responses.add(responses.GET, re.compile(r'.*'), body=html, status=200)
 
     monkeypatch.setattr('time.sleep', lambda s: None)
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'baseball_reference_draft_results',
-        '--year', '2024',
+        'buehrle', 'baseball-reference-draft',
+        '--season', '2024',
         '--all-draft-types',
     ])
-    runpy.run_module('loaders.baseball_reference.baseball_reference_draft_results', run_name='__main__')
+    loaders_main.main()
 
 
 @responses.activate
-def test_main_executes(monkeypatch, fake_make_pipeline):
+def test_main_executes(monkeypatch, fake_make_pipeline, real_draft_years):
     html = (
         '<table>'
         '<thead><tr><th>Year</th><th>Rnd</th><th>RdPck</th><th>Name</th><th>Tm</th></tr></thead>'
@@ -245,11 +254,11 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
     )
 
     monkeypatch.setattr('time.sleep', lambda s: None)
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'baseball_reference_draft_results',
-        '--year', '2024',
+        'buehrle', 'baseball-reference-draft',
+        '--season', '2024',
         '--rounds', json.dumps({'junreg': [1]}),
         '--full-refresh',
     ])
-    runpy.run_module('loaders.baseball_reference.baseball_reference_draft_results', run_name='__main__')
+    loaders_main.main()

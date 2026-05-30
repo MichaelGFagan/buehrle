@@ -1,9 +1,9 @@
-import runpy
 import sys
 
 import dlt
 import duckdb
 
+import loaders.__main__ as loaders_main
 from loaders.retrosheet import retrosheet_game_logs
 
 COLUMNS = retrosheet_game_logs.COLUMNS
@@ -151,7 +151,7 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
     )
 
     monkeypatch.setattr('loaders.retrosheet.retrosheet_sync.REPO_DIR', str(tmp_path))
-    monkeypatch.setattr('loaders.retrosheet.retrosheet_sync.check', lambda: None)
-    monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['retrosheet_game_logs', '--start', '2024', '--end', '2024', '--full-refresh'])
-    runpy.run_module('loaders.retrosheet.retrosheet_game_logs', run_name='__main__')
+    monkeypatch.setattr(retrosheet_game_logs, 'check', lambda: None)
+    monkeypatch.setattr(retrosheet_game_logs, 'make_pipeline', fake_make_pipeline)
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-game-logs', '--season', '2024', '--full-refresh'])
+    loaders_main.main()
