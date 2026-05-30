@@ -88,3 +88,21 @@ def resolve_dates(
         return scope['dates']
     seasons = scope['seasons']
     return season_bounds(seasons[0])[0], season_bounds(seasons[-1])[1]
+
+
+def add_resources_arg(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument('--resources', nargs='+', default=None,
+                        help='Subset of resource names to load. Defaults to all.')
+
+
+def apply_resources(source, args: argparse.Namespace):
+    """Filter a dlt source to the resources named in --resources. Raises if any name is unknown."""
+    if not args.resources:
+        return source
+    available = set(source.resources.keys())
+    unknown = sorted(set(args.resources) - available)
+    if unknown:
+        raise SystemExit(
+            f'Unknown resources: {unknown}. Available: {sorted(available)}'
+        )
+    return source.with_resources(*args.resources)
