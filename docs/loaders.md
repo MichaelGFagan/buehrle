@@ -158,26 +158,28 @@ buehrle lahman --full-refresh
 
 Forward-looking work on the loader layer — this is the immediate roadmap, in priority order. Each step builds on the previous one.
 
-### 1. Per-table `_dlt_load_id`
+### ✅ Done: Per-table `_dlt_load_id`
 
-Every loaded table should carry `_dlt_load_id` so per-table provenance is queryable from the destination (see [loaders/state.py](../loaders/state.py)). Today, arrow-yielding resources skip this column by default — combined with à la carte `--resources`, the schema-level `_dlt_loads` table can't tell you which resources within a schema are fresh vs. stale.
+Every loaded table now carries `_dlt_load_id` so per-table provenance is queryable from the destination (see [loaders/state.py](../loaders/state.py) and `buehrle state --mode table`). Arrow-yielding resources used to skip this column by default — combined with à la carte `--resources`, the schema-level `_dlt_loads` table couldn't tell which resources within a schema were fresh vs. stale.
 
-Enable via dlt config:
+Enabled via [.dlt/config.toml](../.dlt/config.toml):
 
 ```toml
-# .dlt/config.toml
 [normalize.parquet_normalizer]
 add_dlt_load_id = true
+add_dlt_id = false
 ```
 
-Leave `add_dlt_id = false` — it's regenerated per load for arrow data (non-deterministic) and high-cardinality, so it costs storage without giving stable row identity.
+`add_dlt_id` stays off — it's regenerated per load for arrow data (non-deterministic) and high-cardinality, so it costs storage without giving stable row identity. Note dlt resolves `.dlt/config.toml` relative to the **current working directory**, so run `buehrle` from the repo root.
 
-### 2. Standardize how a new loader is added
+**Migration caveat (one-time, per pipeline):** enabling the flag only affects loads from this point on. A table created *before* the flag lacks the column, and dlt's attempt to `ALTER TABLE ADD COLUMN _dlt_load_id` on it fails — DuckDB can't add a constrained column to a populated table (`Parser Error: Adding columns with constraints not yet supported`), which aborts the load and leaves a pending package. The fix is to **`--full-refresh` each pipeline once** so the table is recreated with the column from the start (this is the normal first-backfill action anyway). Until a given source is full-refreshed, its arrow tables will error on the next incremental run. Dict-yielding tables are unaffected — they always carried `_dlt_load_id` regardless of this flag.
+
+### 1. Standardize how a new loader is added
 
 Before building the interactive CLI, explore what can be factored out so that adding a new loader is a small, prescribed pattern rather than a from-scratch script. Look for what's currently duplicated across loaders — pipeline construction, full-refresh handling, scope/arg wiring, arrow yielding, resource selection — and decide what belongs in [loaders/cli.py](../loaders/cli.py) / [loaders/dlt_utils.py](../loaders/dlt_utils.py) versus per-loader code.
 
-The interactive CLI (step 3) will need to discover available loaders and their resources programmatically; a consistent loader shape makes that discovery layer trivial instead of a special case per source.
+The interactive CLI (step 2) will need to discover available loaders and their resources programmatically; a consistent loader shape makes that discovery layer trivial instead of a special case per source.
 
-### 3. Interactive CLI
+### 2. Interactive CLI
 
 The flat `buehrle <loader>` entrypoint exists today (see [loaders/__main__.py](../loaders/__main__.py)). What's still planned is an interactive layer on top that walks the user through loader → resources → scope → refresh-mode, instead of requiring them to remember the right subcommand and flags per source. Useful for the common "I want to update X and Y but not Z" workflow that's currently several invocations.

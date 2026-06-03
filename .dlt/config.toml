@@ -1,0 +1,11 @@
+# dlt resolves this file relative to the current working directory, so run
+# `buehrle` from the repo root for these settings to take effect.
+
+# Stamp every arrow-loaded row with _dlt_load_id so per-table provenance is
+# queryable from the destination (powers `buehrle state --mode table`).
+# Leave add_dlt_id off: it's regenerated per load for arrow data
+# (non-deterministic) and high-cardinality, costing storage without giving
+# stable row identity. See docs/loaders.md > "Per-table _dlt_load_id".
+[normalize.parquet_normalizer]
+add_dlt_load_id = true
+add_dlt_id = false
