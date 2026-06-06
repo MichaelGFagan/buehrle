@@ -6,8 +6,8 @@ import pandas as pd
 
 from dlt.sources.helpers import requests
 
-from loaders.cli import add_resources_arg, apply_resources
-from loaders.dlt_utils import handle_full_refresh, make_pipeline
+from loaders.cli import add_resources_arg, run_loader
+from loaders.dlt_utils import make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -46,10 +46,4 @@ def register(subparsers):
 def main(parser, args):
     pipeline = make_pipeline('baseball_reference')
 
-    source = apply_resources(baseball_reference_war(), args)
-
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, baseball_reference_war(), args)

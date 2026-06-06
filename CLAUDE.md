@@ -42,6 +42,21 @@ validate_scope_args(parser, args)
 scope = resolve_scope(args, EARLIEST_SEASON)  # or resolve_dates(...) for date-only backends
 ```
 
+## The run tail: `run_loader`
+
+Don't hand-write the `apply_resources` → `--full-refresh` → `pipeline.run` → `print` sequence in each loader's `main()`. Call `run_loader(pipeline, source, args)` from `loaders/cli.py` instead — it does all four and returns the `load_info`. It honors `--resources` and `--full-refresh` when the loader defines them and no-ops otherwise, so the same call works for every loader. A loader's `main()` should reduce to: resolve scope, build the `@dlt.source`, then `run_loader(...)`.
+
+```python
+from loaders.cli import run_loader
+from loaders.dlt_utils import make_pipeline
+
+def main(parser, args):
+    # ...resolve scope...
+    pipeline = make_pipeline('my_loader')
+    source = my_source(...)
+    run_loader(pipeline, source, args)
+```
+
 **Loaders intentionally exempt from this convention** (single-shot scrapes with no per-season slicing — they take `--full-refresh` only):
 
 - `loaders/baseball_reference/baseball_reference_war.py`

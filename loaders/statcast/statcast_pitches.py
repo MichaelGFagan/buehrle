@@ -7,8 +7,8 @@ from calendar import monthrange
 from dlt.sources.helpers import requests
 from typing import Iterator
 
-from loaders.cli import add_date_args, add_season_args, resolve_dates, validate_scope_args
-from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+from loaders.cli import add_date_args, add_season_args, resolve_dates, run_loader, validate_scope_args
+from loaders.dlt_utils import make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -106,8 +106,4 @@ def main(parser, args):
         update=args.update,
     )
 
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, source, args)

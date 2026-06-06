@@ -9,8 +9,8 @@ from enum import Enum
 from itertools import product
 from typing import Iterator
 
-from loaders.cli import add_resources_arg, add_season_args, apply_resources, resolve_seasons, validate_season_args
-from loaders.dlt_utils import handle_full_refresh, make_pipeline
+from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
+from loaders.dlt_utils import make_pipeline
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -175,10 +175,5 @@ def main(parser, args):
         postseason=[FangraphsPlayoff.REGULAR_SEASON, FangraphsPlayoff.WILD_CARD, FangraphsPlayoff.DIVISION_SERIES, FangraphsPlayoff.LEAGUE_CHAMPIONSHIP_SERIES, FangraphsPlayoff.WORLD_SERIES],
         update=args.update,
     )
-    source = apply_resources(source, args)
 
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, source, args)

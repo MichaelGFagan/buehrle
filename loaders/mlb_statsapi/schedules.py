@@ -18,8 +18,8 @@ import polars as pl
 import pyarrow as pa
 import requests
 
-from loaders.cli import add_date_args, add_resources_arg, add_season_args, apply_resources, resolve_scope, validate_scope_args
-from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+from loaders.cli import add_date_args, add_resources_arg, add_season_args, resolve_scope, run_loader, validate_scope_args
+from loaders.dlt_utils import make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -283,10 +283,5 @@ def main(parser, args):
 
     pipeline = make_pipeline('mlb_statsapi_schedules')
     source = schedules_source(seasons=scope['seasons'], date_range=scope['dates'])
-    source = apply_resources(source, args)
 
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, source, args)

@@ -2,8 +2,9 @@ import dlt
 
 from typing import Iterator
 
-from loaders.cli import add_resources_arg, add_season_args, apply_resources, resolve_seasons, validate_season_args
-from loaders.statcast._common import BASE_URL, TODAY, handle_full_refresh, make_pipeline, run_years
+from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
+from loaders.dlt_utils import make_pipeline
+from loaders.statcast._common import BASE_URL, TODAY, run_years
 
 STATCAST_START_YEAR = 2015
 
@@ -86,10 +87,5 @@ def main(parser, args):
     pipeline = make_pipeline('statcast_batting_leaderboards')
 
     source = statcast_batting_leaderboards(start_year=start_year, end_year=end_year, update=args.update, game_type=args.game_type)
-    source = apply_resources(source, args)
 
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, source, args)

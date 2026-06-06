@@ -176,9 +176,23 @@ add_dlt_id = false
 
 ### 1. Standardize how a new loader is added
 
-Before building the interactive CLI, explore what can be factored out so that adding a new loader is a small, prescribed pattern rather than a from-scratch script. Look for what's currently duplicated across loaders — pipeline construction, full-refresh handling, scope/arg wiring, arrow yielding, resource selection — and decide what belongs in [loaders/cli.py](../loaders/cli.py) / [loaders/dlt_utils.py](../loaders/dlt_utils.py) versus per-loader code.
+A loader is now a prescribed shape rather than a from-scratch script. The shared pieces live in [loaders/cli.py](../loaders/cli.py) (arg wiring, scope resolution, resource selection, the run tail) and [loaders/dlt_utils.py](../loaders/dlt_utils.py) (pipeline construction, full-refresh, arrow coercion). Per-loader code is reduced to: define the `@dlt.source`, wire args in `register()`, resolve scope + build the source in `main()`, then hand off to `run_loader`.
 
-The interactive CLI (step 2) will need to discover available loaders and their resources programmatically; a consistent loader shape makes that discovery layer trivial instead of a special case per source.
+The runtime tail every loader used to repeat verbatim —
+
+```python
+source = apply_resources(source, args)
+if args.full_refresh:
+    handle_full_refresh(pipeline)
+load_info = pipeline.run(source)
+print(load_info)
+```
+
+— is now a single call: `run_loader(pipeline, source, args)` (see [loaders/cli.py](../loaders/cli.py)). It applies `--resources` filtering and `--full-refresh` when the loader defines those flags and no-ops otherwise, so the same call works for every loader regardless of which scope/refresh flags it exposes.
+
+**Still open:** the `register()` boilerplate (`add_parser` → `add_*_args` → `--full-refresh` → `add_resources_arg` → `set_defaults`) remains explicit per loader. It's deliberately left un-factored — collapsing it into a declarative spec risks more indirection than it saves, and the interactive CLI (step 2) needs per-loader arg metadata anyway, which a spec would have to expose.
+
+The interactive CLI (step 2) needs to discover available loaders and their resources programmatically; this consistent loader shape makes that discovery layer trivial instead of a special case per source.
 
 ### 2. Interactive CLI
 

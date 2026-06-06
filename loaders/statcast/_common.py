@@ -7,7 +7,7 @@ import requests
 
 from typing import Callable, Iterator
 
-from loaders.dlt_utils import DB_PATH, handle_full_refresh, make_pipeline, to_arrow
+from loaders.dlt_utils import to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 

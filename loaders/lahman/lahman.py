@@ -16,8 +16,8 @@ import dlt
 import polars as pl
 import pyarrow as pa
 
-from loaders.cli import add_resources_arg, apply_resources
-from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+from loaders.cli import add_resources_arg, run_loader
+from loaders.dlt_utils import make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -130,10 +130,4 @@ def main(parser, args):
     _check_for_unmapped_csvs(data_dir)
 
     pipeline = make_pipeline('lahman')
-    source = apply_resources(lahman(data_dir=data_dir), args)
-
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, lahman(data_dir=data_dir), args)

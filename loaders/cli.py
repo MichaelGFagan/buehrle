@@ -9,6 +9,8 @@ import datetime
 
 from typing import Callable
 
+from loaders.dlt_utils import handle_full_refresh
+
 
 def add_season_args(parser: argparse.ArgumentParser, earliest_season: int) -> None:
     parser.add_argument('--season', type=int)
@@ -96,13 +98,30 @@ def add_resources_arg(parser: argparse.ArgumentParser) -> None:
 
 
 def apply_resources(source, args: argparse.Namespace):
-    """Filter a dlt source to the resources named in --resources. Raises if any name is unknown."""
-    if not args.resources:
+    """Filter a dlt source to the resources named in --resources. Raises if any name is unknown.
+
+    Safely no-ops for loaders that don't define --resources (the attribute is absent)."""
+    resources = getattr(args, 'resources', None)
+    if not resources:
         return source
     available = set(source.resources.keys())
-    unknown = sorted(set(args.resources) - available)
+    unknown = sorted(set(resources) - available)
     if unknown:
         raise SystemExit(
             f'Unknown resources: {unknown}. Available: {sorted(available)}'
         )
-    return source.with_resources(*args.resources)
+    return source.with_resources(*resources)
+
+
+def run_loader(pipeline, source, args: argparse.Namespace):
+    """Standard loader tail: filter resources, optionally full-refresh, run, report.
+
+    Honors `--resources` and `--full-refresh` when the loader defines them; loaders
+    without those flags are unaffected. Returns the dlt load_info.
+    """
+    source = apply_resources(source, args)
+    if getattr(args, 'full_refresh', False):
+        handle_full_refresh(pipeline)
+    load_info = pipeline.run(source)
+    print(load_info)
+    return load_info

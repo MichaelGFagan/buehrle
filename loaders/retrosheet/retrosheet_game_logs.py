@@ -7,9 +7,9 @@ import pyarrow as pa
 from enum import Enum
 from typing import Iterator
 
-from loaders.cli import add_season_args, resolve_seasons, validate_season_args
+from loaders.cli import add_season_args, resolve_seasons, run_loader, validate_season_args
 from loaders.retrosheet.retrosheet_sync import REPO_DIR, check
-from loaders.dlt_utils import handle_full_refresh, make_pipeline, to_arrow
+from loaders.dlt_utils import make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -164,8 +164,4 @@ def main(parser, args):
         update=args.update,
     )
 
-    if args.full_refresh:
-        handle_full_refresh(pipeline)
-
-    load_info = pipeline.run(source)
-    print(load_info)
+    run_loader(pipeline, source, args)
