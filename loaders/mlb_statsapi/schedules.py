@@ -30,6 +30,12 @@ TIMEOUT = 60
 # Earliest season per /v1/seasons/all (see loaders/mlb_statsapi/samples/seasons_all.json).
 EARLIEST_SEASON = 1876
 
+PIPELINE_NAME = 'mlb_statsapi_schedules'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+# Only `schedules` carries a time dimension; the innings/officials child tables
+# share the parent's scope and have none of their own.
+WATERMARKS = {'schedules': 'season'}
+
 
 def _fetch(params: dict) -> dict:
     full_params = {'sportId': SPORT_ID, 'hydrate': HYDRATE, **params}
@@ -281,7 +287,7 @@ def main(parser, args):
     validate_scope_args(parser, args)
     scope = resolve_scope(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('mlb_statsapi_schedules')
+    pipeline = make_pipeline(PIPELINE_NAME)
     source = schedules_source(seasons=scope['seasons'], date_range=scope['dates'])
 
     run_loader(pipeline, source, args)

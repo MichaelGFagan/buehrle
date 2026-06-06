@@ -16,6 +16,10 @@ URLS = {
     'pitching': 'https://www.baseball-reference.com/data/war_daily_pitch.txt',
 }
 
+PIPELINE_NAME = 'baseball_reference_war'  # destination schema (== dlt pipeline/dataset name)
+# Single-shot replace loader: full-refresh only, no incremental watermark.
+WATERMARKS: dict[str, str] = {}
+
 
 def _make_resource(stat: str, url: str):
 
@@ -44,6 +48,6 @@ def register(subparsers):
 
 
 def main(parser, args):
-    pipeline = make_pipeline('baseball_reference')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     run_loader(pipeline, baseball_reference_war(), args)

@@ -10,6 +10,10 @@ STATCAST_START_YEAR = 2015
 
 RUNNING_SPLIT_TYPES = ('raw', 'percent')
 
+PIPELINE_NAME = 'statcast_running_leaderboards'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'sprint_speed': 'year', 'running_splits': 'year'}
+
 
 @dlt.resource(name='sprint_speed', write_disposition='merge', primary_key=['player_id', 'year'])
 def sprint_speed(start_year: int, end_year: int, update: bool = False) -> Iterator:
@@ -50,7 +54,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_year, end_year = resolve_seasons(args, STATCAST_START_YEAR)
 
-    pipeline = make_pipeline('statcast_running_leaderboards')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = statcast_running_leaderboards(start_year=start_year, end_year=end_year, update=args.update)
 

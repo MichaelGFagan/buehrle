@@ -23,6 +23,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefm
 
 DEFAULT_DATA_DIR = os.path.join(os.path.dirname(__file__), '../../data/lahman')
 
+PIPELINE_NAME = 'lahman'  # destination schema (== dlt pipeline/dataset name)
+# Single-shot replace loader: full-refresh only, no incremental watermark.
+WATERMARKS: dict[str, str] = {}
+
 # Column overrides for tables whose CSV headers contain identifiers DuckDB rejects unquoted
 # (e.g. `2B`, `3B`). Same overrides as the existing dbt source.
 BATTING_COLUMNS = [
@@ -129,5 +133,5 @@ def main(parser, args):
     data_dir = os.path.abspath(args.data_dir)
     _check_for_unmapped_csvs(data_dir)
 
-    pipeline = make_pipeline('lahman')
+    pipeline = make_pipeline(PIPELINE_NAME)
     run_loader(pipeline, lahman(data_dir=data_dir), args)

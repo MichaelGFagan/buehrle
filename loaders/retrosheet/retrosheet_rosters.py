@@ -16,6 +16,10 @@ EARLIEST_SEASON = 1871
 COLUMNS = ['player_id', 'last_name', 'first_name', 'bats', 'throws', 'team', 'position']
 PRIMARY_KEYS = {'player_id', 'team', 'season'}
 
+PIPELINE_NAME = 'retrosheet_rosters'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'rosters': 'season'}
+
 
 def _load_season(season: int) -> pa.Table:
     season_dir = os.path.join(REPO_DIR, f'seasons/{season}')
@@ -72,7 +76,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('retrosheet_rosters')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = retrosheet_rosters(
         start_season=start_season,

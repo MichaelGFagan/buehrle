@@ -17,6 +17,10 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefm
 EARLIEST_SEASON = 1871
 BASE_FANGRAPHS_URL = 'https://www.fangraphs.com/api/leaders/major-league/data'
 
+PIPELINE_NAME = 'fangraphs'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'bat': 'season', 'pit': 'season', 'fld': 'season'}
+
 
 class FangraphsNamingConvention(SnakeCaseNaming):
 
@@ -165,7 +169,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('fangraphs')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = fangraphs(
         start_season=start_season,

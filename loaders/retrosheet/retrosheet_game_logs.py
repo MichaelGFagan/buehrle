@@ -87,6 +87,10 @@ class RetrosheetPlayoff(Enum):
 
 PRIMARY_KEYS = {'home_team', 'date', 'game_num'}
 
+PIPELINE_NAME = 'retrosheet'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'game_logs': 'date'}
+
 
 def _add_game_type(table: pa.Table, game_type: str) -> pa.Table:
     return table.append_column('game_type', pa.array([game_type] * len(table), type=pa.utf8()))
@@ -155,7 +159,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('retrosheet')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = retrosheet(
         start_season=start_season,

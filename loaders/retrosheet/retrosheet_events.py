@@ -26,6 +26,17 @@ DEDUCED_EXTENSIONS = {'.EDA', '.EDN', '.EDF'}
 
 PRIMARY_KEYS = {'GAME_ID', 'EVENT_ID'}
 
+PIPELINE_NAME = 'retrosheet_events'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+# These tables carry only game_id (e.g. ANA201804020); the season is its 4-char
+# year slice (1-indexed chars 4-7, after the 3-char home-team code).
+_SEASON_FROM_GAME_ID = 'substr(game_id, 4, 4)'
+WATERMARKS = {
+    'retrosheet_game_logs_full': _SEASON_FROM_GAME_ID,
+    'retrosheet_game_logs_box': _SEASON_FROM_GAME_ID,
+    'retrosheet_game_logs_deduced': _SEASON_FROM_GAME_ID,
+}
+
 
 
 def _event_files(season_dir: str, extensions: set[str]) -> list[str]:
@@ -113,7 +124,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('retrosheet_events')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = retrosheet_events(start_season=start_season, end_season=end_season, update=args.update)
 

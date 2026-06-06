@@ -8,6 +8,16 @@ from loaders.statcast._common import BASE_URL, TODAY, run_years
 
 STATCAST_START_YEAR = 2015
 
+PIPELINE_NAME = 'statcast_batting_leaderboards'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {
+    table: 'year'
+    for table in (
+        'exit_velo_barrels', 'expected_stats', 'percentile_ranks',
+        'pitch_arsenal_stats', 'bat_tracking',
+    )
+}
+
 
 @dlt.resource(name='exit_velo_barrels', write_disposition='merge', primary_key=['player_id', 'year'])
 def exit_velo_barrels(start_year: int, end_year: int, update: bool = False) -> Iterator:
@@ -84,7 +94,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_year, end_year = resolve_seasons(args, STATCAST_START_YEAR)
 
-    pipeline = make_pipeline('statcast_batting_leaderboards')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = statcast_batting_leaderboards(start_year=start_year, end_year=end_year, update=args.update, game_type=args.game_type)
 

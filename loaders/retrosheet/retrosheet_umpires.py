@@ -16,6 +16,10 @@ EARLIEST_SEASON = 1871
 COLUMN_RENAMES = {'ID': 'umpire_id', 'last': 'last_name', 'first': 'first_name'}
 PRIMARY_KEYS = {'umpire_id', 'season'}
 
+PIPELINE_NAME = 'retrosheet_umpires'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'umpires': 'season'}
+
 
 def _load_season(season: int) -> pa.Table:
     path = os.path.join(REPO_DIR, f'seasons/{season}/UMPIRES{season}.txt')
@@ -65,7 +69,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('retrosheet_umpires')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = retrosheet_umpires(
         start_season=start_season,

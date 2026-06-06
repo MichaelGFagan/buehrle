@@ -26,6 +26,10 @@ COLUMN_RENAMES = {
 
 PRIMARY_KEYS = {'game_pk', 'at_bat_number', 'pitch_number'}
 
+PIPELINE_NAME = 'statcast_pitches'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'pitches': 'game_date'}
+
 
 def _fetch_range(start_date: datetime.date, end_date: datetime.date):
     params = {
@@ -98,7 +102,7 @@ def main(parser, args):
     validate_scope_args(parser, args)
     start_date, end_date = resolve_dates(args, EARLIEST_SEASON, _season_bounds)
 
-    pipeline = make_pipeline('statcast_pitches')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = statcast_source(
         start_date=start_date,

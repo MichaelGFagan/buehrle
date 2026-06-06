@@ -24,6 +24,10 @@ COLUMNS = [
 
 PRIMARY_KEYS = {'date', 'game_num', 'home_team'}
 
+PIPELINE_NAME = 'retrosheet_schedules'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'schedules': 'date'}
+
 
 def _fetch(path: str) -> pa.Table:
     logging.info(f'Reading {path}')
@@ -73,7 +77,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_season, end_season = resolve_seasons(args, EARLIEST_SEASON)
 
-    pipeline = make_pipeline('retrosheet_schedules')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = retrosheet_schedules(
         start_season=start_season,

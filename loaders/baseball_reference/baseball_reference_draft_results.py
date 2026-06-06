@@ -28,6 +28,10 @@ COLUMN_RENAMES = {
 PRIMARY_KEYS = {'Year', 'draft_type', 'Rnd', 'RdPck'}
 RETRY_BACKOFF = (30, 60, 120)
 
+PIPELINE_NAME = 'baseball_reference_draft'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {'draft_results': 'year'}
+
 with open(os.path.join(os.path.dirname(__file__), 'baseball_reference_draft_years.json')) as f:
     DRAFT_YEARS = json.load(f)
 
@@ -217,7 +221,7 @@ def main(parser, args):
     else:
         draft_types = (DraftType.JUNREG,)
 
-    pipeline = make_pipeline('baseball_reference_draft')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     failed_rounds = []
 

@@ -10,6 +10,16 @@ STATCAST_START_YEAR = 2015
 
 ARSENAL_TYPES = ('avg_speed', 'n', 'avg_spin', 'avg_break_x', 'avg_break_z', 'avg_vert_break')
 PITCH_TYPES = ('FF', 'SI', 'FC', 'SL', 'CH', 'CU', 'FS', 'KN', 'ST', 'SV')
+
+PIPELINE_NAME = 'statcast_pitching_leaderboards'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {
+    table: 'year'
+    for table in (
+        'exit_velo_barrels', 'expected_stats', 'percentile_ranks', 'pitch_arsenals',
+        'pitch_arsenal_stats', 'pitch_movement', 'active_spin', 'bat_tracking',
+    )
+}
 ACTIVE_SPIN_TYPES = ('spin-based', 'movement-based')
 
 
@@ -123,7 +133,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_year, end_year = resolve_seasons(args, STATCAST_START_YEAR)
 
-    pipeline = make_pipeline('statcast_pitching_leaderboards')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = statcast_pitching_leaderboards(start_year=start_year, end_year=end_year, update=args.update, game_type=args.game_type)
 

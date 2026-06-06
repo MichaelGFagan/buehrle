@@ -16,6 +16,10 @@ CHARACTERS = [str(num) for num in range(10)] + list(string.ascii_lowercase)
 BASE_URL = 'https://raw.githubusercontent.com/chadwickbureau/register/refs/heads/master/data'
 PRIMARY_KEYS = {'key_uuid'}
 
+PIPELINE_NAME = 'chadwick_register'  # destination schema (== dlt pipeline/dataset name)
+# Single-shot replace loader: full-refresh only, no incremental watermark.
+WATERMARKS: dict[str, str] = {}
+
 
 @dlt.resource(name='people', write_disposition='replace', primary_key='key_uuid')
 def people() -> Iterator[pa.Table]:
@@ -50,7 +54,7 @@ def register(subparsers):
 
 
 def main(parser, args):
-    pipeline = make_pipeline('chadwick_register')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = chadwick_register()
 

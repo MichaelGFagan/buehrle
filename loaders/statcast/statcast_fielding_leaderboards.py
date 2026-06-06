@@ -10,6 +10,16 @@ STATCAST_START_YEAR = 2016  # OAA leaderboards begin 2016
 
 FIELDING_POSITIONS = ('2', '3', '4', '5', '6', '7', '8', '9', 'OF')
 
+PIPELINE_NAME = 'statcast_fielding_leaderboards'  # destination schema (== dlt pipeline/dataset name)
+# Status-grid watermark: {table: SQL expression yielding its time dimension}.
+WATERMARKS = {
+    table: 'year'
+    for table in (
+        'outs_above_average', 'fielding_run_value', 'outfield_directional_oaa',
+        'outfield_catch_prob', 'outfielder_jump', 'catcher_poptime', 'catcher_framing',
+    )
+}
+
 
 @dlt.resource(name='outs_above_average', write_disposition='merge', primary_key=['player_id', 'year', 'position'])
 def outs_above_average(start_year: int, end_year: int, update: bool = False) -> Iterator:
@@ -103,7 +113,7 @@ def main(parser, args):
     validate_season_args(parser, args)
     start_year, end_year = resolve_seasons(args, STATCAST_START_YEAR)
 
-    pipeline = make_pipeline('statcast_fielding_leaderboards')
+    pipeline = make_pipeline(PIPELINE_NAME)
 
     source = statcast_fielding_leaderboards(start_year=start_year, end_year=end_year, update=args.update)
 
