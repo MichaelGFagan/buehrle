@@ -19,7 +19,9 @@ BASE_FANGRAPHS_URL = 'https://www.fangraphs.com/api/leaders/major-league/data'
 
 PIPELINE_NAME = 'fangraphs'  # destination schema (== dlt pipeline/dataset name)
 # Status-grid watermark: {table: SQL expression yielding its time dimension}.
-WATERMARKS = {'bat': 'season', 'pit': 'season', 'fld': 'season'}
+# Table names are the lowercased FangraphsStat names (str(stat)), not the API
+# codes bat/pit/fld.
+WATERMARKS = {'batting': 'season', 'pitching': 'season', 'fielding': 'season'}
 
 
 class FangraphsNamingConvention(SnakeCaseNaming):
