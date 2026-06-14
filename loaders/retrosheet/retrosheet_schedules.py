@@ -15,12 +15,16 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefm
 EARLIEST_SEASON = 1877
 SCHEDULE_PATH = os.path.join(REPO_DIR, 'seasons/{season}/{season}schedule.csv')
 
+# Canonical (modern) Retrosheet schedule schema. Files come in two shapes:
+# older seasons omit `location` (12 columns); 2024+ include it (13 columns).
+# We normalise both to this 13-column schema, null-filling `location` when absent.
 COLUMNS = [
     'date', 'game_num', 'day_of_week', 'visiting_team', 'visiting_team_league',
     'visiting_team_game_num', 'home_team', 'home_team_league',
-    'home_team_game_num', 'day_night', 'postponement_cancellation',
-    'date_of_makeup',
+    'home_team_game_num', 'day_night', 'location',
+    'postponement_cancellation', 'date_of_makeup',
 ]
+LOCATION_INDEX = COLUMNS.index('location')
 
 PRIMARY_KEYS = {'date', 'game_num', 'home_team'}
 
@@ -31,7 +35,15 @@ WATERMARKS = {'schedules': 'date'}
 
 def _fetch(path: str) -> pa.Table:
     logging.info(f'Reading {path}')
-    df = pl.read_csv(path, has_header=False, new_columns=COLUMNS, infer_schema_length=0)
+    # Most season files carry a `Date,Num,Day,...` header row; reading with
+    # has_header=False ingests it as data (leaking a literal 'Date' into the
+    # date column), and duplicate header names (League/Game) rule out
+    # has_header=True. So read headerless and strip the header row by content.
+    df = pl.read_csv(path, has_header=False, infer_schema_length=0)
+    df = df.filter(pl.col(df.columns[0]) != 'Date')
+    if df.width == len(COLUMNS) - 1:  # older format lacks `location`
+        df = df.insert_column(LOCATION_INDEX, pl.lit(None, dtype=pl.Utf8).alias('location'))
+    df = df.rename({old: new for old, new in zip(df.columns, COLUMNS)})
     return to_arrow(df, PRIMARY_KEYS)
 
 
