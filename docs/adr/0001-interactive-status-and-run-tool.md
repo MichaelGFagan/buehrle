@@ -43,6 +43,12 @@ falls into four buckets, and three of them are actionable. (`oldest` collapses t
     `_full` (2025) and `_deduced` (1968) are populated. Decide whether `box` ever
     yields rows: if it's structurally always-empty, drop it from `WATERMARKS`;
     otherwise treat the gap as a load to fill.
-- [ ] **Data bug — `retrosheet_schedules`.** `schedules.date` contains a literal
-  `'Date'` value (a CSV header leaked in as data), so `MAX(date)` returns `'Date'`.
-  Strip/filter the header row on load, then reload.
+- [x] **Data bug — `retrosheet_schedules`.** `schedules.date` contained a literal
+  `'Date'` value (a CSV header leaked in as data), so `MAX(date)` returned `'Date'`.
+  Root cause was reading every file with `has_header=False`; 146/149 season files
+  carry a `Date,Num,Day,...` header. Fixed by reading headerless and stripping the
+  header row by content (duplicate `League`/`Game` names rule out `has_header=True`).
+  Uncovered a second latent bug: 2024+ files add a 13th `Location` column, which the
+  fixed-width `COLUMNS` list silently mislabeled. Now normalised to one canonical
+  13-column schema (with `location`), null-filling it for the older 12-column format.
+  - [ ] Reload to apply: `buehrle retrosheet-schedules --full-history --full-refresh`.
