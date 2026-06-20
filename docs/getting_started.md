@@ -12,7 +12,7 @@ This installs everything declared in [pyproject.toml](../pyproject.toml), includ
 
 ## Where data lands
 
-All loaders write to a single DuckDB file at [data/buehrle.duckdb](../data/). Each loader uses its own schema (`dataset_name`) inside that database, equal to its `pipeline_name` — e.g. the MLB Stats API schedules loader writes to schema `mlb_statsapi_schedules`. This isolation is what makes `--full-refresh` on one loader safe to run without affecting any other loader's tables.
+All loaders write to a single DuckDB file at [data/buehrle-raw.duckdb](../data/). Each loader uses its own schema (`dataset_name`) inside that database, equal to its `pipeline_name` — e.g. the MLB Stats API schedules loader writes to schema `mlb_statsapi_schedules`. This isolation is what makes `--full-refresh` on one loader safe to run without affecting any other loader's tables.
 
 The path is set in [loaders/dlt_utils.py](../loaders/dlt_utils.py) via `DB_PATH`. Edit that constant to point elsewhere.
 
@@ -44,15 +44,15 @@ This is a thin wrapper around `brew install chadwick`.
 
 ## First run
 
-After `uv sync`, the `buehrle` command is on `PATH`. `buehrle --help` lists every loader; `buehrle <loader> --help` shows that loader's flags.
+After `uv sync`, the `buehrle` command is on `PATH`. `buehrle --help` lists the top-level commands (`load` plus utilities); `buehrle load --help` lists every loader; `buehrle load <loader> --help` shows that loader's flags.
 
 The simplest end-to-end smoke test is the MLB Stats API schedules loader — no local data, fast endpoint:
 
 ```bash
-buehrle mlb-statsapi-schedules
+buehrle load mlb-statsapi-schedules
 ```
 
-With no args this loads the current season's schedule (~2,900 games for a recent year, one HTTP call). On success you'll see a dlt load summary and [data/buehrle.duckdb](../data/) will contain a `mlb_statsapi_schedules` schema with three tables.
+With no args this loads the current season's schedule (~2,900 games for a recent year, one HTTP call). On success you'll see a dlt load summary and [data/buehrle-raw.duckdb](../data/) will contain a `mlb_statsapi_schedules` schema with three tables.
 
 ## Querying the data
 
@@ -60,9 +60,9 @@ Any DuckDB client works. From Python:
 
 ```python
 import duckdb
-duckdb.connect('data/buehrle.duckdb').sql(
+duckdb.connect('data/buehrle-raw.duckdb').sql(
     'SELECT * FROM mlb_statsapi_schedules.schedules LIMIT 5'
 )
 ```
 
-Or from the CLI: `duckdb data/buehrle.duckdb`.
+Or from the CLI: `duckdb data/buehrle-raw.duckdb`.

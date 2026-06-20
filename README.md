@@ -2,7 +2,7 @@
 
 Loaders for public baseball data sources into a local DuckDB database.
 
-Each source has a Python loader under [loaders/](loaders/) that uses [dlt](https://dlthub.com/) to land data into [data/buehrle.duckdb](data/).
+Each source has a Python loader under [loaders/](loaders/) that uses [dlt](https://dlthub.com/) to land data into [data/buehrle-raw.duckdb](data/).
 
 ## Sources
 

@@ -15,7 +15,7 @@ from typing import Iterable
 
 import duckdb
 
-DEFAULT_DB = Path(__file__).resolve().parent.parent / 'data' / 'buehrle.duckdb'
+DEFAULT_DB = Path(__file__).resolve().parent.parent / 'data' / 'buehrle-raw.duckdb'
 
 
 def schema_exists(con: duckdb.DuckDBPyConnection, schema: str) -> bool:

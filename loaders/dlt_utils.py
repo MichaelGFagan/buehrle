@@ -5,7 +5,7 @@ import pyarrow as pa
 
 from dlt.destinations.exceptions import DatabaseUndefinedRelation
 
-DB_PATH = os.path.join(os.path.dirname(__file__), '../data/buehrle.duckdb')
+DB_PATH = os.path.join(os.path.dirname(__file__), '../data/buehrle-raw.duckdb')
 
 
 def make_pipeline(name: str):
