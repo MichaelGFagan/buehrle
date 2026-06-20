@@ -1,6 +1,6 @@
 # Loaders
 
-Each loader is a Python script under `loaders/<source>/` runnable as a `buehrle` subcommand — e.g. `buehrle fangraphs --season 2025`. Run `buehrle --help` for the full list and `buehrle <loader> --help` for per-loader flags. All loaders write to [data/buehrle.duckdb](../data/), each into its own schema. See [Getting started](getting_started.md) for setup.
+Each loader is a Python script under `loaders/<source>/` runnable as a `buehrle` subcommand — e.g. `buehrle load fangraphs --season 2025`. Run `buehrle --help` for the full list and `buehrle load <loader> --help` for per-loader flags. All loaders write to [data/buehrle-raw.duckdb](../data/), each into its own schema. See [Getting started](getting_started.md) for setup.
 
 ## CLI conventions
 
@@ -126,10 +126,10 @@ Single-shot scrape — `--full-refresh` only.
 For most loaders, **no args** is the incremental refresh — it re-pulls the current season and merges by primary key, so any rows added or changed upstream land in the destination and nothing is dropped:
 
 ```bash
-buehrle mlb-statsapi-schedules
-buehrle fangraphs
-buehrle statcast-pitches
-buehrle statcast-batting
+buehrle load mlb-statsapi-schedules
+buehrle load fangraphs
+buehrle load statcast-pitches
+buehrle load statcast-batting
 # ...etc
 ```
 
@@ -143,15 +143,15 @@ Two important exceptions where no-args **will not** work mid-season:
 ### Clean first-time backfill
 
 ```bash
-buehrle <loader> --full-history --full-refresh
+buehrle load <loader> --full-history --full-refresh
 ```
 
 For loaders without season scope, drop `--full-history`:
 
 ```bash
-buehrle baseball-reference-war --full-refresh
-buehrle chadwick-register --full-refresh
-buehrle lahman --full-refresh
+buehrle load baseball-reference-war --full-refresh
+buehrle load chadwick-register --full-refresh
+buehrle load lahman --full-refresh
 ```
 
 ## Planned improvements
@@ -196,4 +196,4 @@ The interactive CLI (step 2) needs to discover available loaders and their resou
 
 ### 2. Interactive CLI
 
-The flat `buehrle <loader>` entrypoint exists today (see [loaders/__main__.py](../loaders/__main__.py)). What's still planned is an interactive layer on top that walks the user through loader → resources → scope → refresh-mode, instead of requiring them to remember the right subcommand and flags per source. Useful for the common "I want to update X and Y but not Z" workflow that's currently several invocations.
+The flat `buehrle load <loader>` entrypoint exists today (see [loaders/__main__.py](../loaders/__main__.py)). What's still planned is an interactive layer on top that walks the user through loader → resources → scope → refresh-mode, instead of requiring them to remember the right subcommand and flags per source. Useful for the common "I want to update X and Y but not Z" workflow that's currently several invocations.

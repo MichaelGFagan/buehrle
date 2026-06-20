@@ -139,13 +139,13 @@ Tables:
 CLI:
 
 ```
-buehrle mlb-statsapi-schedules                      # current season (default)
-buehrle mlb-statsapi-schedules --season 2024
-buehrle mlb-statsapi-schedules --start-season 2000 --end-season 2026
-buehrle mlb-statsapi-schedules --date 2026-05-08
-buehrle mlb-statsapi-schedules --start-date 2026-05-01 --end-date 2026-05-08
-buehrle mlb-statsapi-schedules --full-history             # backfill from EARLIEST_SEASON (1876)
-buehrle mlb-statsapi-schedules --full-history --full-refresh  # clean full backfill
+buehrle load mlb-statsapi-schedules                      # current season (default)
+buehrle load mlb-statsapi-schedules --season 2024
+buehrle load mlb-statsapi-schedules --start-season 2000 --end-season 2026
+buehrle load mlb-statsapi-schedules --date 2026-05-08
+buehrle load mlb-statsapi-schedules --start-date 2026-05-01 --end-date 2026-05-08
+buehrle load mlb-statsapi-schedules --full-history             # backfill from EARLIEST_SEASON (1876)
+buehrle load mlb-statsapi-schedules --full-history --full-refresh  # clean full backfill
 ```
 
 Season args, date args, and `--full-history` are mutually exclusive. `--full-refresh` is orthogonal: it drops the `mlb_statsapi_schedules` schema before loading via [handle_full_refresh](../loaders/dlt_utils.py#L19), regardless of scope.

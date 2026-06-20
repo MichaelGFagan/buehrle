@@ -26,7 +26,7 @@ from loaders.statcast import (
     statcast_pitching_leaderboards,
     statcast_running_leaderboards,
 )
-from loaders import state
+from loaders import drop_db, state
 
 
 LOADERS = [
@@ -35,6 +35,7 @@ LOADERS = [
     chadwick_register,
     fangraphs,
     install_chadwick,
+    drop_db,
     lahman,
     mlb_statsapi_schedules,
     retrosheet_events,
@@ -55,7 +56,16 @@ LOADERS = [
 def data_loaders():
     """Loaders that land data into a schema — those declaring ``WATERMARKS``.
 
-    Excludes utilities (``state``, ``retrosheet_sync``, ``install_chadwick``)
+    These are the subcommands nested under ``buehrle load``. Excludes the
+    utilities (``state``, ``drop_db``, ``retrosheet_sync``, ``install_chadwick``)
     that register a subcommand but don't own a destination schema.
     """
     return [module for module in LOADERS if hasattr(module, 'WATERMARKS')]
+
+
+def utilities():
+    """Non-loader subcommands (``state``, ``drop_db``, ``retrosheet_sync``,
+    ``install_chadwick``) that register a command but don't land data into a
+    schema. These stay at the top level rather than under ``buehrle load``.
+    """
+    return [module for module in LOADERS if not hasattr(module, 'WATERMARKS')]

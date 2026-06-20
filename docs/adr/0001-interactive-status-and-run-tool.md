@@ -1,6 +1,6 @@
 # Interactive status-and-run tool
 
-Bare `buehrle` launches an interactive **status grid**: one row per loader showing its last load and oldest table watermark, with two mutually-exclusive checkbox columns — **smart incremental** and **full refresh**. Fill it once, submit, and the tool runs the selected loads and exits. `buehrle state` stays as the scriptable read-only report; `buehrle <loader>` subcommands are unchanged.
+Bare `buehrle` launches an interactive **status grid**: one row per loader showing its last load and oldest table watermark, with two mutually-exclusive checkbox columns — **smart incremental** and **full refresh**. Fill it once, submit, and the tool runs the selected loads and exits. `buehrle state` stays as the scriptable read-only report; `buehrle load <loader>` subcommands are unchanged.
 
 ## Considered options
 
@@ -19,8 +19,8 @@ Bare `buehrle` launches an interactive **status grid**: one row per loader showi
 Surfaced while wiring up the status grid. Code is done; these are live-DB / data-quality chores.
 
 - **Baseball-Reference schema migration.** The `war` loader's pipeline was renamed `baseball_reference` → `baseball_reference_war` so the two BR loaders own distinct schemas (and `war --full-refresh` can no longer `DROP SCHEMA baseball_reference CASCADE` over draft's data). The live DB still has the pre-rename layout, so:
-  - [ ] Re-run war into its new schema: `buehrle baseball-reference-war --full-refresh`.
-  - [ ] Re-run draft into its schema: `buehrle baseball-reference-draft-results --full-history --full-refresh`.
+  - [ ] Re-run war into its new schema: `buehrle load baseball-reference-war --full-refresh`.
+  - [ ] Re-run draft into its schema: `buehrle load baseball-reference-draft-results --full-history --full-refresh`.
   - [ ] Drop the now-orphaned schema: `DROP SCHEMA baseball_reference CASCADE`.
 ### Loaders reporting no watermark
 
@@ -33,7 +33,7 @@ falls into four buckets, and three of them are actionable. (`oldest` collapses t
   Blank is correct; the grid offers only full refresh. No action.
 - **Never loaded.** `baseball_reference_draft` and `retrosheet` (game_logs) have no
   tables in the live DB yet. They'll populate once loaded (draft is covered by the
-  migration above; game_logs just needs a first `buehrle retrosheet-game-logs` run).
+  migration above; game_logs just needs a first `buehrle load retrosheet-game-logs` run).
 - [ ] **Partially loaded — the signal is doing its job.** These have only some of
   their declared tables, so the watermark is (correctly) suppressed until a full
   load makes them current:
@@ -51,4 +51,4 @@ falls into four buckets, and three of them are actionable. (`oldest` collapses t
   Uncovered a second latent bug: 2024+ files add a 13th `Location` column, which the
   fixed-width `COLUMNS` list silently mislabeled. Now normalised to one canonical
   13-column schema (with `location`), null-filling it for the older 12-column format.
-  - [ ] Reload to apply: `buehrle retrosheet-schedules --full-history --full-refresh`.
+  - [ ] Reload to apply: `buehrle load retrosheet-schedules --full-history --full-refresh`.
