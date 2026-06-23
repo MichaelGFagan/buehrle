@@ -109,5 +109,5 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
     _mock('1', status=404)
 
     monkeypatch.setattr(chadwick_register, 'make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'chadwick-register', '--full-refresh'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'chadwick-register', '--full-refresh'])
     loaders_main.main()

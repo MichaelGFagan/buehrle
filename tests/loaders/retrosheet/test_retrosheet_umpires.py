@@ -66,5 +66,5 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
     monkeypatch.setattr('loaders.retrosheet.retrosheet_sync.REPO_DIR', str(tmp_path))
     monkeypatch.setattr(retrosheet_umpires, 'check', lambda: None)
     monkeypatch.setattr(retrosheet_umpires, 'make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-umpires', '--season', '2024', '--full-refresh'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'retrosheet-umpires', '--season', '2024', '--full-refresh'])
     loaders_main.main()

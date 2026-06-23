@@ -67,7 +67,7 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
 
     monkeypatch.setattr(pitching_mod, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'statcast-pitching', '--season', '2023',
+        'buehrle', 'load', 'statcast-pitching', '--season', '2023',
         '--resources', 'exit_velo_barrels', '--full-refresh',
     ])
     loaders_main.main()

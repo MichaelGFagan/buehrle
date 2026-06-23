@@ -147,7 +147,7 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
 
     monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'lahman', '--data-dir', str(data_dir), '--full-refresh',
+        'buehrle', 'load', 'lahman', '--data-dir', str(data_dir), '--full-refresh',
     ])
     loaders_main.main()
 
@@ -159,7 +159,7 @@ def test_main_warns_on_unmapped_csv(tmp_path, monkeypatch, fake_make_pipeline, c
     _write(str(data_dir), 'NewSabrTable.csv', 'a,b\n1,2\n')
 
     monkeypatch.setattr('loaders.dlt_utils.make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'lahman', '--data-dir', str(data_dir)])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'lahman', '--data-dir', str(data_dir)])
 
     with caplog.at_level(logging.WARNING):
         loaders_main.main()

@@ -122,7 +122,7 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
 
     monkeypatch.setattr(sp, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'statcast-pitches',
+        'buehrle', 'load', 'statcast-pitches',
         '--start-date', '2024-04-01', '--end-date', '2024-04-15', '--full-refresh',
     ])
     loaders_main.main()

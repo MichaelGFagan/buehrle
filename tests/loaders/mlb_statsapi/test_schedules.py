@@ -404,7 +404,7 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
     monkeypatch.setattr(schedules.requests, 'get',
                         lambda *a, **kw: _mock_response(_payload([_hydrated_game(1)])))
     monkeypatch.setattr(schedules, 'make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'mlb-statsapi-schedules', '--date', '2026-05-08', '--full-refresh'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'mlb-statsapi-schedules', '--date', '2026-05-08', '--full-refresh'])
 
     loaders_main.main()
 

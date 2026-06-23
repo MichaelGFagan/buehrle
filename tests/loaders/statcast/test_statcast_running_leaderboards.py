@@ -77,7 +77,7 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
 
     monkeypatch.setattr(running_mod, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'statcast-running', '--season', '2023',
+        'buehrle', 'load', 'statcast-running', '--season', '2023',
         '--resources', 'sprint_speed', '--full-refresh',
     ])
     loaders_main.main()

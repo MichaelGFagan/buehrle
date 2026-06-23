@@ -49,5 +49,5 @@ def test_main_executes(monkeypatch, fake_make_pipeline):
     responses.add(responses.GET, URLS['pitching'], body='name_common,age,WAR\nJake deGrom,30,7.2', status=200)
 
     monkeypatch.setattr(bbref_war, 'make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'baseball-reference-war'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'baseball-reference-war'])
     loaders_main.main()

@@ -180,7 +180,7 @@ def test_main_with_failed_rounds(monkeypatch, fake_make_pipeline, real_draft_yea
     monkeypatch.setattr('time.sleep', lambda s: None)
     monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'baseball-reference-draft',
+        'buehrle', 'load', 'baseball-reference-draft',
         '--season', '2024',
         '--rounds', json.dumps({'junreg': [1]}),
     ])
@@ -205,7 +205,7 @@ def test_main_with_draft_types_flag(monkeypatch, fake_make_pipeline, real_draft_
     monkeypatch.setattr('time.sleep', lambda s: None)
     monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'baseball-reference-draft',
+        'buehrle', 'load', 'baseball-reference-draft',
         '--season', '2024',
         '--draft-types', 'junreg',
     ])
@@ -227,7 +227,7 @@ def test_main_with_all_draft_types_flag(monkeypatch, fake_make_pipeline, real_dr
     monkeypatch.setattr('time.sleep', lambda s: None)
     monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'baseball-reference-draft',
+        'buehrle', 'load', 'baseball-reference-draft',
         '--season', '2024',
         '--all-draft-types',
     ])
@@ -256,7 +256,7 @@ def test_main_executes(monkeypatch, fake_make_pipeline, real_draft_years):
     monkeypatch.setattr('time.sleep', lambda s: None)
     monkeypatch.setattr(draft, 'make_pipeline', fake_make_pipeline)
     monkeypatch.setattr(sys, 'argv', [
-        'buehrle', 'baseball-reference-draft',
+        'buehrle', 'load', 'baseball-reference-draft',
         '--season', '2024',
         '--rounds', json.dumps({'junreg': [1]}),
         '--full-refresh',

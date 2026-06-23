@@ -101,7 +101,7 @@ def test_pipeline_loads_event_data(tmp_path, monkeypatch):
 
 def test_main_exits_when_cwevent_missing(monkeypatch):
     monkeypatch.setattr(shutil, 'which', lambda cmd: None)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-events'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'retrosheet-events'])
     with pytest.raises(SystemExit):
         loaders_main.main()
 
@@ -118,5 +118,5 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
         stdout='GAME_ID,BAT_ID\nNYY202404010,trout\n',
     ))
     monkeypatch.setattr(ev, 'make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'retrosheet-events', '--season', '2024', '--full-refresh'])
+    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'retrosheet-events', '--season', '2024', '--full-refresh'])
     loaders_main.main()
