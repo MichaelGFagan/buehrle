@@ -1,13 +1,15 @@
 """Unified entry point for buehrle loaders.
 
 Usage:
+    buehrle                           # interactive status grid (no args)
     buehrle load <loader> [args...]   # run a data loader
     buehrle <utility> [args...]       # run a utility (state, drop-db, ...)
     python -m loaders load <loader> [args...]
 
-Data loaders live under the `load` subcommand; utilities (which don't land
-data into a schema) sit at the top level. Each module exposes a
-`register(subparsers)` function that adds its subcommand and a
+Bare `buehrle` launches the interactive status-and-run grid (see
+loaders/interactive/). Data loaders live under the `load` subcommand;
+utilities (which don't land data into a schema) sit at the top level. Each
+module exposes a `register(subparsers)` function that adds its subcommand and a
 `main(parser, args)` function that runs it. See loaders/fangraphs/fangraphs.py
 for the reference loader implementation.
 """
@@ -27,7 +29,8 @@ WideHelpFormatter = functools.partial(
 
 def main():
     parser = argparse.ArgumentParser(prog='buehrle')
-    subparsers = parser.add_subparsers(dest='command', required=True, metavar='<command>')
+    # Optional: bare `buehrle` (no subcommand) launches the interactive grid.
+    subparsers = parser.add_subparsers(dest='command', metavar='<command>')
 
     load_parser = subparsers.add_parser('load', help='Run a data loader',
                                         formatter_class=WideHelpFormatter)
@@ -39,6 +42,9 @@ def main():
         module.register(subparsers)
 
     args = parser.parse_args()
+    if getattr(args, 'func', None) is None:
+        from loaders.interactive.app import run
+        raise SystemExit(run())
     args.func(args)
 
 

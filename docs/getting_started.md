@@ -44,7 +44,7 @@ This is a thin wrapper around `brew install chadwick`.
 
 ## First run
 
-After `uv sync`, the `buehrle` command is on `PATH`. `buehrle --help` lists the top-level commands (`load` plus utilities); `buehrle load --help` lists every loader; `buehrle load <loader> --help` shows that loader's flags.
+After `uv sync`, the `buehrle` command is on `PATH`. Bare `buehrle` (no subcommand) launches the interactive [menu](loaders.md#2-interactive-cli) — the loader status grid plus the utilities (show state, sync Retrosheet, install Chadwick, drop the database). `buehrle --help` lists the top-level commands (`load` plus utilities); `buehrle load --help` lists every loader; `buehrle load <loader> --help` shows that loader's flags.
 
 The simplest end-to-end smoke test is the MLB Stats API schedules loader — no local data, fast endpoint:
 

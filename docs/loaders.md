@@ -196,4 +196,11 @@ The interactive CLI (step 2) needs to discover available loaders and their resou
 
 ### 2. Interactive CLI
 
-The flat `buehrle load <loader>` entrypoint exists today (see [loaders/__main__.py](../loaders/__main__.py)). What's still planned is an interactive layer on top that walks the user through loader → resources → scope → refresh-mode, instead of requiring them to remember the right subcommand and flags per source. Useful for the common "I want to update X and Y but not Z" workflow that's currently several invocations.
+Built — bare `buehrle` (no subcommand) launches a persistent [Textual](https://github.com/textualize/textual) TUI (ADR [0001](adr/0001-interactive-status-and-run-tool.md)) whose **menu** mirrors the top-level CLI: the loader status grid plus every utility — show loader state, clone/update the Retrosheet repo, install Chadwick tools, and drop the raw database (with a confirmation modal). Selecting a utility or running loads streams the subprocess output into an in-app log pane and returns to the menu — everything stays inside the full-screen app.
+
+The **status grid** shows one row per loader with its last load and oldest watermark, and two mutually-exclusive per-row toggles — **incremental** (smart, watermark-driven) and **full refresh** (clean rebuild). Mark the loads you want (`i` / `f` / `space`), press Enter, and it runs the selected loads as subprocesses (continue-on-error, per-loader output prefixing). Useful for the common "I want to update X and Y but not Z" workflow that's otherwise several invocations.
+
+- **incremental** re-loads from a loader's oldest table watermark (inclusive) through today; a loader that isn't fully current falls back to `--full-history`.
+- **full refresh** maps to `--full-refresh --full-history` (just `--full-refresh` for single-shot loaders).
+
+The logic splits into a pure, tested [core.py](../loaders/interactive/core.py) (introspection + plan resolution), a tested [runner.py](../loaders/interactive/runner.py) (subprocess streaming), and a coverage-omitted [app.py](../loaders/interactive/app.py) (the Textual shell). The flat `buehrle load <loader>` entrypoint (see [loaders/__main__.py](../loaders/__main__.py)) is unchanged.
