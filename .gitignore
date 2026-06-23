@@ -3,3 +3,6 @@ logs/
 __pycache__
 .coverage
 MLB-StatsAPI/
+.clineignore
+.clinerules
+
