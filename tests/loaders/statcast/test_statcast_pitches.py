@@ -78,6 +78,35 @@ def test_pipeline_iterates_across_year_boundary(tmp_path, stub_fetch):
     ]
 
 
+def test_end_date_clamped_to_today(tmp_path, stub_fetch):
+    """A season window ending Dec 31 must not fetch months past today."""
+    pipeline = _build_pipeline(tmp_path)
+    pipeline.run(sp.statcast_source(
+        datetime.date(2026, 3, 1), datetime.date(2026, 12, 31),
+        today=datetime.date(2026, 8, 9),
+    ))
+
+    # Stops at August (today), never Sep–Dec; last month is capped at the 9th.
+    assert stub_fetch == [
+        (datetime.date(2026, 3, 1), datetime.date(2026, 3, 31)),
+        (datetime.date(2026, 4, 1), datetime.date(2026, 4, 30)),
+        (datetime.date(2026, 5, 1), datetime.date(2026, 5, 31)),
+        (datetime.date(2026, 6, 1), datetime.date(2026, 6, 30)),
+        (datetime.date(2026, 7, 1), datetime.date(2026, 7, 31)),
+        (datetime.date(2026, 8, 1), datetime.date(2026, 8, 9)),
+    ]
+
+
+def test_no_fetch_when_start_after_today(tmp_path, stub_fetch):
+    """A window entirely in the future fetches nothing."""
+    pipeline = _build_pipeline(tmp_path)
+    pipeline.run(sp.statcast_source(
+        datetime.date(2027, 3, 1), datetime.date(2027, 12, 31),
+        today=datetime.date(2026, 8, 9),
+    ))
+    assert stub_fetch == []
+
+
 def test_state_advances_to_last_month_end(tmp_path, stub_fetch):
     pipeline = _build_pipeline(tmp_path)
     pipeline.run(sp.statcast_source(datetime.date(2024, 4, 1), datetime.date(2024, 5, 15)))

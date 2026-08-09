@@ -1,11 +1,11 @@
 import datetime
 import logging
+from calendar import monthrange
+from collections.abc import Iterator
+
 import dlt
 import polars as pl
-
-from calendar import monthrange
 from dlt.sources.helpers import requests
-from typing import Iterator
 
 from loaders.cli import add_date_args, add_season_args, resolve_dates, run_loader, validate_scope_args
 from loaders.dlt_utils import make_pipeline, to_arrow
@@ -60,12 +60,20 @@ def _fetch_range(start_date: datetime.date, end_date: datetime.date):
     write_disposition='merge',
     primary_key=['game_pk', 'at_bat_number', 'pitch_number'],
 )
-def pitches(start_date: datetime.date, end_date: datetime.date, update: bool = False) -> Iterator:
+def pitches(start_date: datetime.date, end_date: datetime.date, update: bool = False,
+            today: datetime.date = TODAY) -> Iterator:
     state = dlt.current.resource_state()
     if update or 'last_date' not in state:
         from_date = start_date
     else:
         from_date = datetime.date.fromisoformat(state['last_date'])
+
+    # Never request future months: the season window ends Dec 31, but Statcast
+    # has no data past today, so fetching them just wastes empty requests.
+    if end_date > today:
+        end_date = today
+    if from_date > end_date:
+        return
 
     year, month = from_date.year, from_date.month
     while datetime.date(year, month, 1) <= end_date:
@@ -81,8 +89,9 @@ def pitches(start_date: datetime.date, end_date: datetime.date, update: bool = F
 
 
 @dlt.source
-def statcast_source(start_date: datetime.date, end_date: datetime.date, update: bool = False):
-    yield pitches(start_date, end_date, update)
+def statcast_source(start_date: datetime.date, end_date: datetime.date, update: bool = False,
+                    today: datetime.date = TODAY):
+    yield pitches(start_date, end_date, update, today)
 
 
 def _season_bounds(year: int) -> tuple[datetime.date, datetime.date]:
