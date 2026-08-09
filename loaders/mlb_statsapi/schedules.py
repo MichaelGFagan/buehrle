@@ -11,14 +11,22 @@ See docs/mlb_statsapi.md for endpoint shape, hydrations, and the deferred-sideca
 
 import datetime
 import logging
-from typing import Iterator
+import time
+from collections.abc import Iterator
 
 import dlt
 import polars as pl
 import pyarrow as pa
 import requests
 
-from loaders.cli import add_date_args, add_resources_arg, add_season_args, resolve_scope, run_loader, validate_scope_args
+from loaders.cli import (
+    add_date_args,
+    add_resources_arg,
+    add_season_args,
+    resolve_scope,
+    run_loader,
+    validate_scope_args,
+)
 from loaders.dlt_utils import make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
@@ -27,6 +35,11 @@ BASE_URL = 'https://statsapi.mlb.com/api/v1/schedule'
 HYDRATE = 'decisions,gameInfo,weather,flags,seriesStatus,linescore,officials'
 SPORT_ID = 1
 TIMEOUT = 60
+# Backoff (seconds) between retries on transient API failures; length sets the
+# retry count. The MLB Stats API intermittently returns 503 "first byte
+# timeout" on otherwise-valid requests, so retry rather than abort the run.
+RETRY_BACKOFF = (30, 60, 120)
+RETRY_STATUS = {502, 503, 504}
 # Earliest season per /v1/seasons/all (see loaders/mlb_statsapi/samples/seasons_all.json).
 EARLIEST_SEASON = 1876
 
@@ -40,9 +53,26 @@ WATERMARKS = {'schedules': 'season'}
 def _fetch(params: dict) -> dict:
     full_params = {'sportId': SPORT_ID, 'hydrate': HYDRATE, **params}
     logging.info(f'GET {BASE_URL} {full_params}')
-    response = requests.get(BASE_URL, params=full_params, timeout=TIMEOUT)
-    response.raise_for_status()
-    return response.json()
+    last_exc = None
+    for attempt in range(len(RETRY_BACKOFF) + 1):
+        if attempt > 0:
+            wait = RETRY_BACKOFF[attempt - 1]
+            logging.warning(f'Retrying {params} in {wait}s (attempt {attempt + 1})')
+            time.sleep(wait)
+        try:
+            response = requests.get(BASE_URL, params=full_params, timeout=TIMEOUT)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code if e.response is not None else None
+            if status not in RETRY_STATUS:
+                raise
+            last_exc = e
+            logging.warning(f'Attempt {attempt + 1} failed for {params}: {e}')
+        except (requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+            last_exc = e
+            logging.warning(f'Attempt {attempt + 1} failed for {params}: {e}')
+    raise last_exc
 
 
 def _fetch_payloads(seasons: list[int] | None,
@@ -243,30 +273,39 @@ def _to_arrow(rows: list[dict], primary_keys: set[str]) -> pa.Table:
 @dlt.source
 def schedules_source(seasons: list[int] | None = None,
                      date_range: tuple[datetime.date, datetime.date] | None = None):
-    payloads = list(_fetch_payloads(seasons, date_range))
-    games = _games_from_payloads(payloads)
-    logging.info(f'Fetched {len(games)} games across {len(payloads)} API call(s)')
+    # Stream one API payload (one season, or one date range) at a time so peak
+    # memory stays flat over a full-history backfill rather than growing with
+    # the number of seasons. The parent resource fetches each payload once;
+    # dlt fans it out to the three transformers below (verified: the parent
+    # generator runs a single pass, not once per child table). `selected=False`
+    # keeps the raw payload out of the destination.
+    @dlt.resource(name='_raw_payloads', selected=False)
+    def raw_payloads() -> Iterator[dict]:
+        for payload in _fetch_payloads(seasons, date_range):
+            games = _games_from_payloads([payload])
+            logging.info(f'Fetched {len(games)} games in this API call')
+            yield payload
 
-    @dlt.resource(name='schedules', primary_key='game_pk', write_disposition='merge')
-    def schedules() -> Iterator[pa.Table]:
+    @dlt.transformer(data_from=raw_payloads, name='schedules',
+                     primary_key='game_pk', write_disposition='merge')
+    def schedules(payload: dict) -> Iterator[pa.Table]:
+        games = _games_from_payloads([payload])
         if not games:
             return
         yield _to_arrow([_flatten_game(g) for g in games], primary_keys={'game_pk'})
 
-    @dlt.resource(name='schedules_linescore_innings',
-                  primary_key=['game_pk', 'inning_num'],
-                  write_disposition='merge')
-    def schedules_linescore_innings() -> Iterator[pa.Table]:
-        rows = list(_innings_rows(games))
+    @dlt.transformer(data_from=raw_payloads, name='schedules_linescore_innings',
+                     primary_key=['game_pk', 'inning_num'], write_disposition='merge')
+    def schedules_linescore_innings(payload: dict) -> Iterator[pa.Table]:
+        rows = list(_innings_rows(_games_from_payloads([payload])))
         if not rows:
             return
         yield _to_arrow(rows, primary_keys={'game_pk', 'inning_num'})
 
-    @dlt.resource(name='schedules_officials',
-                  primary_key=['game_pk', 'official_type'],
-                  write_disposition='merge')
-    def schedules_officials() -> Iterator[pa.Table]:
-        rows = list(_officials_rows(games))
+    @dlt.transformer(data_from=raw_payloads, name='schedules_officials',
+                     primary_key=['game_pk', 'official_type'], write_disposition='merge')
+    def schedules_officials(payload: dict) -> Iterator[pa.Table]:
+        rows = list(_officials_rows(_games_from_payloads([payload])))
         if not rows:
             return
         yield _to_arrow(rows, primary_keys={'game_pk', 'official_type'})

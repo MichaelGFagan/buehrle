@@ -4,10 +4,10 @@ from unittest.mock import MagicMock
 
 import duckdb
 import pytest
+import requests
 
 import loaders.__main__ as loaders_main
 from loaders.mlb_statsapi import schedules
-
 
 # ---------- fixtures ----------
 
@@ -178,6 +178,14 @@ def _mock_response(payload):
     return response
 
 
+def _http_error_response(status):
+    response = MagicMock()
+    response.status_code = status
+    response.raise_for_status.side_effect = requests.exceptions.HTTPError(
+        f'{status} Server Error', response=response)
+    return response
+
+
 # ---------- _flatten_game ----------
 
 def test_flatten_game_with_full_hydration():
@@ -304,6 +312,59 @@ def test_games_from_payloads_handles_empty_payload():
     assert schedules._games_from_payloads([{'dates': []}]) == []
 
 
+# ---------- _fetch retry ----------
+
+def test_fetch_retries_transient_status_then_succeeds(monkeypatch):
+    monkeypatch.setattr(schedules, 'RETRY_BACKOFF', (0, 0))
+    monkeypatch.setattr(schedules.time, 'sleep', lambda s: None)
+    responses = [_http_error_response(503), _mock_response(_payload([]))]
+    monkeypatch.setattr(schedules.requests, 'get', lambda *a, **kw: responses.pop(0))
+
+    result = schedules._fetch({'season': '2008'})
+
+    assert result == _payload([])
+    assert responses == []
+
+
+def test_fetch_retries_on_timeout(monkeypatch):
+    monkeypatch.setattr(schedules, 'RETRY_BACKOFF', (0,))
+    monkeypatch.setattr(schedules.time, 'sleep', lambda s: None)
+    calls = []
+    def fake_get(*a, **kw):
+        calls.append(1)
+        if len(calls) == 1:
+            raise requests.exceptions.Timeout('first byte timeout')
+        return _mock_response(_payload([]))
+    monkeypatch.setattr(schedules.requests, 'get', fake_get)
+
+    assert schedules._fetch({'season': '2008'}) == _payload([])
+    assert len(calls) == 2
+
+
+def test_fetch_raises_after_exhausting_retries(monkeypatch):
+    monkeypatch.setattr(schedules, 'RETRY_BACKOFF', (0, 0))
+    monkeypatch.setattr(schedules.time, 'sleep', lambda s: None)
+    monkeypatch.setattr(schedules.requests, 'get',
+                        lambda *a, **kw: _http_error_response(503))
+
+    with pytest.raises(requests.exceptions.HTTPError):
+        schedules._fetch({'season': '2008'})
+
+
+def test_fetch_does_not_retry_non_transient_status(monkeypatch):
+    monkeypatch.setattr(schedules, 'RETRY_BACKOFF', (0, 0))
+    monkeypatch.setattr(schedules.time, 'sleep', lambda s: None)
+    calls = []
+    def fake_get(*a, **kw):
+        calls.append(1)
+        return _http_error_response(404)
+    monkeypatch.setattr(schedules.requests, 'get', fake_get)
+
+    with pytest.raises(requests.exceptions.HTTPError):
+        schedules._fetch({'season': '2008'})
+    assert len(calls) == 1
+
+
 # ---------- _fetch_payloads ----------
 
 def test_fetch_payloads_one_call_per_season(monkeypatch):
@@ -381,6 +442,28 @@ def test_pipeline_loads_three_tables(tmp_path, fake_make_pipeline, monkeypatch):
     assert [r[0] for r in officials] == ['First Base', 'Home Plate', 'Second Base', 'Third Base']
 
 
+def test_pipeline_fetches_once_per_season_across_three_tables(tmp_path, fake_make_pipeline, monkeypatch):
+    """The transformer fan-out must fetch each season once, not once per table."""
+    seasons_fetched = []
+    def fake_get(url, params, timeout):
+        seasons_fetched.append(params['season'])
+        pk = int(params['season'])
+        return _mock_response(_payload([_hydrated_game(pk)]))
+    monkeypatch.setattr(schedules.requests, 'get', fake_get)
+
+    pipeline = fake_make_pipeline('mlb_statsapi_schedules')
+    pipeline.run(schedules.schedules_source(seasons=[2024, 2025, 2026]))
+
+    # One GET per season — not 3 tables × 3 seasons.
+    assert sorted(seasons_fetched) == ['2024', '2025', '2026']
+
+    con = duckdb.connect(str(tmp_path / 'test.duckdb'))
+    game_pks = con.execute(
+        'SELECT game_pk FROM mlb_statsapi_schedules.schedules ORDER BY game_pk'
+    ).fetchall()
+    assert [r[0] for r in game_pks] == [2024, 2025, 2026]
+
+
 def test_pipeline_merges_on_rerun(tmp_path, fake_make_pipeline, monkeypatch):
     """A second run with an updated game should overwrite the row, not duplicate it."""
     pipeline = fake_make_pipeline('mlb_statsapi_schedules')
@@ -404,7 +487,8 @@ def test_main_executes(tmp_path, monkeypatch, fake_make_pipeline):
     monkeypatch.setattr(schedules.requests, 'get',
                         lambda *a, **kw: _mock_response(_payload([_hydrated_game(1)])))
     monkeypatch.setattr(schedules, 'make_pipeline', fake_make_pipeline)
-    monkeypatch.setattr(sys, 'argv', ['buehrle', 'load', 'mlb-statsapi-schedules', '--date', '2026-05-08', '--full-refresh'])
+    monkeypatch.setattr(sys, 'argv',
+                        ['buehrle', 'load', 'mlb-statsapi-schedules', '--date', '2026-05-08', '--full-refresh'])
 
     loaders_main.main()
 
