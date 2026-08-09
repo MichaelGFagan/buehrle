@@ -2,7 +2,19 @@
 
 ## Install
 
-Python 3.12+. The project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+The project uses [uv](https://docs.astral.sh/uv/) for dependency management.
+
+### Manual prerequisites
+
+Install these yourself before setting up the project:
+
+- **Python 3.12+**
+- **[uv](https://docs.astral.sh/uv/)** — dependency manager; bootstraps everything else.
+- **[Homebrew](https://brew.sh)** — required by `task prereqs` to install the tools below.
+- **git** — required by `buehrle retrosheet-sync` to clone the Retrosheet repo.
+- **[Task](https://taskfile.dev)** (optional) — `brew install go-task`, only if you want the `task` shortcuts.
+
+### Python dependencies
 
 ```bash
 uv sync
@@ -10,11 +22,22 @@ uv sync
 
 This installs everything declared in [pyproject.toml](../pyproject.toml), including dlt with the DuckDB destination.
 
+### System tools
+
+```bash
+task prereqs
+```
+
+Installs the non-Python tools some loaders need, via Homebrew:
+
+- **Chadwick `cwtools`** (`cwevent`, etc.) — required by the Retrosheet events loader (wraps `buehrle install-chadwick` → `brew install chadwick`).
+- **duckdb CLI** (optional) — for ad-hoc SQL against the database.
+
 ## Where data lands
 
 All loaders write to a single DuckDB file at [data/buehrle-raw.duckdb](../data/). Each loader uses its own schema (`dataset_name`) inside that database, equal to its `pipeline_name` — e.g. the MLB Stats API schedules loader writes to schema `mlb_statsapi_schedules`. This isolation is what makes `--full-refresh` on one loader safe to run without affecting any other loader's tables.
 
-The path is set in [loaders/dlt_utils.py](../loaders/dlt_utils.py) via `DB_PATH`. Edit that constant to point elsewhere.
+The path is resolved in [loaders/dlt_utils.py](../loaders/dlt_utils.py) by `resolve_db_path()`: it returns the `BUEHRLE_DB` environment variable when set, otherwise the default `DEFAULT_DB_PATH` (`data/buehrle-raw.duckdb`). Set `BUEHRLE_DB` to point loads elsewhere — e.g. a throwaway database for a smoke test — without editing code.
 
 ## Per-source prerequisites
 
