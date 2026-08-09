@@ -1,5 +1,5 @@
-import re
 import json
+import re
 from collections import OrderedDict
 
 # ── 1. Load field definitions from batting_schema.json ───────────────────────
@@ -18,9 +18,12 @@ integer_fields = {
 }
 
 def get_type(key, val):
-    if isinstance(val, bool):  return 'BOOLEAN'
-    if isinstance(val, str):   return 'VARCHAR'
-    if key in integer_fields:  return 'INTEGER'
+    if isinstance(val, bool):
+        return 'BOOLEAN'
+    if isinstance(val, str):
+        return 'VARCHAR'
+    if key in integer_fields:
+        return 'INTEGER'
     return 'DOUBLE'
 
 # ── 3. DuckDB-safe short name transformation ─────────────────────────────────

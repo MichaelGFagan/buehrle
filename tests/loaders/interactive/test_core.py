@@ -4,14 +4,12 @@ The Textual TUI + subprocess runner in app.py are coverage-omitted; all
 plan resolution and loader introspection is exercised here.
 """
 
-import argparse
 import datetime
 from types import SimpleNamespace
 
 import pytest
 
 from loaders.interactive import core
-
 
 TODAY = datetime.date(2026, 6, 20)
 
@@ -160,16 +158,21 @@ def test_build_row_pulls_cli_identity():
 def test_cycle_watermarked():
     row = core.build_row(_season_only_module(), _status())
     assert row.selection is None
-    row.cycle(); assert row.selection == core.INCREMENTAL
-    row.cycle(); assert row.selection == core.FULL
-    row.cycle(); assert row.selection is None
+    row.cycle()
+    assert row.selection == core.INCREMENTAL
+    row.cycle()
+    assert row.selection == core.FULL
+    row.cycle()
+    assert row.selection is None
 
 
 def test_cycle_full_refresh_only_skips_incremental():
     row = core.build_row(_season_only_module(), _status(full_refresh_only=True))
     assert row.can_incremental() is False
-    row.cycle(); assert row.selection == core.FULL
-    row.cycle(); assert row.selection is None
+    row.cycle()
+    assert row.selection == core.FULL
+    row.cycle()
+    assert row.selection is None
 
 
 def test_toggle_incremental_noop_for_full_refresh_only():
@@ -180,14 +183,18 @@ def test_toggle_incremental_noop_for_full_refresh_only():
 
 def test_toggle_incremental():
     row = core.build_row(_season_only_module(), _status())
-    row.toggle_incremental(); assert row.selection == core.INCREMENTAL
-    row.toggle_incremental(); assert row.selection is None
+    row.toggle_incremental()
+    assert row.selection == core.INCREMENTAL
+    row.toggle_incremental()
+    assert row.selection is None
 
 
 def test_toggle_full():
     row = core.build_row(_season_only_module(), _status())
-    row.toggle_full(); assert row.selection == core.FULL
-    row.toggle_full(); assert row.selection is None
+    row.toggle_full()
+    assert row.selection == core.FULL
+    row.toggle_full()
+    assert row.selection is None
 
 
 def test_row_flags_none_when_unselected():

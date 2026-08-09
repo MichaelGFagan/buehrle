@@ -1,10 +1,10 @@
-import dlt
+from collections.abc import Iterator
 
-from typing import Iterator
+import dlt
 
 from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
 from loaders.dlt_utils import make_pipeline
-from loaders.statcast._common import BASE_URL, TODAY, run_years
+from loaders.statcast._common import BASE_URL, run_years
 
 STATCAST_START_YEAR = 2015
 
@@ -65,7 +65,7 @@ def pitch_arsenals(start_year: int, end_year: int, update: bool = False) -> Iter
 def pitch_arsenal_stats(start_year: int, end_year: int, update: bool = False) -> Iterator:
     yield from run_years(
         'pitch_arsenal_stats', {'player_id', 'year', 'pitch_type'}, start_year, end_year,
-        lambda y: [({}, f'{BASE_URL}/pitch-arsenal-stats?type=pitcher&pitchType=&year={y}&team=&min=1&minPitches=1&csv=true')],
+        lambda y: [({}, f'{BASE_URL}/pitch-arsenal-stats?type=pitcher&pitchType=&year={y}&team=&min=1&minPitches=1&csv=true')],  # noqa: E501
         update,
     )
 
@@ -78,7 +78,8 @@ def pitch_movement(start_year: int, end_year: int, update: bool = False) -> Iter
                 f'{BASE_URL}/pitch-movement?year={y}&team=&min=50'
                 f'&pitch_type={pt}&hand=&x=pitcher_break_x_hidden&z=pitcher_break_z_hidden&csv=true'
             ))
-    yield from run_years('pitch_movement', {'pitcher_id', 'year', 'pitch_type'}, start_year, end_year, iter_year, update)
+    yield from run_years('pitch_movement', {'pitcher_id', 'year', 'pitch_type'},
+                         start_year, end_year, iter_year, update)
 
 
 # active_spin columns pivot by spin_type (spin-based vs movement-based); label rows so both can coexist.
@@ -135,6 +136,8 @@ def main(parser, args):
 
     pipeline = make_pipeline(PIPELINE_NAME)
 
-    source = statcast_pitching_leaderboards(start_year=start_year, end_year=end_year, update=args.update, game_type=args.game_type)
+    source = statcast_pitching_leaderboards(
+        start_year=start_year, end_year=end_year, update=args.update, game_type=args.game_type,
+    )
 
     run_loader(pipeline, source, args)

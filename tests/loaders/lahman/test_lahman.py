@@ -10,7 +10,6 @@ from dlt.extract.exceptions import ResourceExtractionError
 import loaders.__main__ as loaders_main
 from loaders.lahman import lahman
 
-
 BATTING_CSV = (
     'playerID,yearID,stint,teamID,lgID,G,AB,R,H,2B,3B,HR,RBI,SB,CS,BB,SO,IBB,HBP,SH,SF,GIDP\n'
     'doejo01,2024,1,NYY,AL,15,50,10,15,3,1,2,8,1,0,5,12,0,1,0,0,1\n'

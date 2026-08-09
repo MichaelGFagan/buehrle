@@ -1,20 +1,21 @@
 import csv
 from difflib import SequenceMatcher
 
+
 def fuzzy_match(str1, str2):
     """Calculate similarity ratio between two strings"""
     return SequenceMatcher(None, str1.upper(), str2.upper()).ratio()
 
 # Read missing_teams.csv
 missing_teams = []
-with open('data/missing_teams.csv', 'r') as f:
+with open('data/missing_teams.csv') as f:
     reader = csv.DictReader(f)
     for row in reader:
         missing_teams.append(row)
 
 # Read Lahman Teams.csv and create a lookup by (yearID, teamID)
 lahman_teams = {}
-with open('data/lahman/Teams.csv', 'r') as f:
+with open('data/lahman/Teams.csv') as f:
     reader = csv.DictReader(f)
     for row in reader:
         key = (row['yearID'], row['teamID'])
@@ -104,7 +105,7 @@ print(f"  Matched teams: {len(missing_teams) - len(unmatched)}")
 print(f"  Unmatched teams: {len(unmatched)}")
 
 if unmatched:
-    print(f"\nUnmatched teams (created empty records):")
+    print("\nUnmatched teams (created empty records):")
     for team_name, year_id, team_id in unmatched[:10]:  # Show first 10
         print(f"  - {team_name} ({year_id}) - ID: {team_id}")
     if len(unmatched) > 10:

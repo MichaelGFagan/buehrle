@@ -1,8 +1,7 @@
-from prefect import flow, task, get_run_logger
-from prefect.task_runners import ThreadPoolTaskRunner
+from prefect import flow, get_run_logger
+
 import loaders.fangraphs as fg
-import loaders.baseball_reference_war as bbwar
-import loaders.chadwick_register as chadwick
+
 
 @flow
 def main():

@@ -3,7 +3,6 @@ from io import StringIO
 
 import dlt
 import pandas as pd
-
 from dlt.sources.helpers import requests
 
 from loaders.cli import add_resources_arg, run_loader

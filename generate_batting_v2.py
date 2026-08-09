@@ -1,5 +1,5 @@
-import re
 import json
+import re
 
 # ── 1. Load field order from schema ──────────────────────────────────────────
 with open('data/fangraphs/batting/batting_schema.json') as f:
@@ -84,9 +84,12 @@ integer_fields = {
 }
 
 def get_type(key, val):
-    if isinstance(val, bool):  return 'BOOLEAN'
-    if isinstance(val, str):   return 'VARCHAR'
-    if key in integer_fields:  return 'INTEGER'
+    if isinstance(val, bool):
+        return 'BOOLEAN'
+    if isinstance(val, str):
+        return 'VARCHAR'
+    if key in integer_fields:
+        return 'INTEGER'
     return 'DOUBLE'
 
 # ── 6. Build schema JSON string ───────────────────────────────────────────────

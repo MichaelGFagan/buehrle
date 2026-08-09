@@ -1,6 +1,5 @@
-import pytest
-
 import dlt
+import pytest
 
 
 @pytest.fixture

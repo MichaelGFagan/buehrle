@@ -1,15 +1,15 @@
 import logging
 import os
+from collections.abc import Iterator
+from enum import Enum
+
 import dlt
 import polars as pl
 import pyarrow as pa
 
-from enum import Enum
-from typing import Iterator
-
 from loaders.cli import add_season_args, resolve_seasons, run_loader, validate_season_args
-from loaders.retrosheet.retrosheet_sync import REPO_DIR, check
 from loaders.dlt_utils import make_pipeline, to_arrow
+from loaders.retrosheet.retrosheet_sync import REPO_DIR, check
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 

@@ -1,11 +1,11 @@
 import logging
 import string
+from collections.abc import Iterator
+
 import dlt
 import polars as pl
 import pyarrow as pa
 import requests
-
-from typing import Iterator
 
 from loaders.cli import run_loader
 from loaders.dlt_utils import make_pipeline, to_arrow

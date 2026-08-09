@@ -1,10 +1,10 @@
-import dlt
+from collections.abc import Iterator
 
-from typing import Iterator
+import dlt
 
 from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
 from loaders.dlt_utils import make_pipeline
-from loaders.statcast._common import BASE_URL, TODAY, run_years
+from loaders.statcast._common import BASE_URL, run_years
 
 STATCAST_START_YEAR = 2015
 

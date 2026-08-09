@@ -10,7 +10,7 @@ buehrle_dbt/models/sources/lahman/_source_lahman.yml so dbt sources can be repoi
 
 import logging
 import os
-from typing import Iterator
+from collections.abc import Iterator
 
 import dlt
 import polars as pl

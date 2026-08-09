@@ -3,14 +3,14 @@ import logging
 import os
 import time
 from collections import defaultdict
+from collections.abc import Iterator
+from enum import Enum
+from io import StringIO
+
 import dlt
 import pandas as pd
 import polars as pl
-
 import requests
-from enum import Enum
-from io import StringIO
-from typing import Iterator
 
 from loaders.cli import add_season_args, resolve_seasons, run_loader, validate_season_args
 from loaders.dlt_utils import make_pipeline, to_arrow

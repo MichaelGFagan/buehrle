@@ -1,13 +1,13 @@
 import logging
 import re
 import time
-import dlt
-
-from dlt.common.normalizers.naming.snake_case import NamingConvention as SnakeCaseNaming
-from dlt.sources.helpers import requests
+from collections.abc import Iterator
 from enum import Enum
 from itertools import product
-from typing import Iterator
+
+import dlt
+from dlt.common.normalizers.naming.snake_case import NamingConvention as SnakeCaseNaming
+from dlt.sources.helpers import requests
 
 from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
 from loaders.dlt_utils import make_pipeline
@@ -125,7 +125,8 @@ def _fetch_season(stat: FangraphsStat, season: int, playoff: FangraphsPlayoff) -
     return response.json().get('data', [])
 
 
-def _make_resource(stat: FangraphsStat, start_season: int, end_season: int, postseason: list[FangraphsPlayoff], update: bool = False):
+def _make_resource(stat: FangraphsStat, start_season: int, end_season: int,
+                   postseason: list[FangraphsPlayoff], update: bool = False):
 
     @dlt.resource(
         name=str(stat),
@@ -178,7 +179,13 @@ def main(parser, args):
         end_season=end_season,
         stats=[FangraphsStat.BATTING, FangraphsStat.PITCHING, FangraphsStat.FIELDING],
         # postseason=[FangraphsPlayoff.REGULAR_SEASON],
-        postseason=[FangraphsPlayoff.REGULAR_SEASON, FangraphsPlayoff.WILD_CARD, FangraphsPlayoff.DIVISION_SERIES, FangraphsPlayoff.LEAGUE_CHAMPIONSHIP_SERIES, FangraphsPlayoff.WORLD_SERIES],
+        postseason=[
+            FangraphsPlayoff.REGULAR_SEASON,
+            FangraphsPlayoff.WILD_CARD,
+            FangraphsPlayoff.DIVISION_SERIES,
+            FangraphsPlayoff.LEAGUE_CHAMPIONSHIP_SERIES,
+            FangraphsPlayoff.WORLD_SERIES,
+        ],
         update=args.update,
     )
 

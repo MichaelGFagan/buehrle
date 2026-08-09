@@ -1,10 +1,10 @@
-import dlt
+from collections.abc import Iterator
 
-from typing import Iterator
+import dlt
 
 from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
 from loaders.dlt_utils import make_pipeline
-from loaders.statcast._common import BASE_URL, SAVANT_HOST, TODAY, run_years
+from loaders.statcast._common import BASE_URL, SAVANT_HOST, run_years
 
 STATCAST_START_YEAR = 2016  # OAA leaderboards begin 2016
 
@@ -32,14 +32,15 @@ def outs_above_average(start_year: int, end_year: int, update: bool = False) -> 
                 f'?type=Fielder&startYear={y}&endYear={y}&split=no&team=&range=year&min=10&pos={pos}&roles=&viz=hide&csv=true'
             )
             yield ({'position': pos}, url)
-    yield from run_years('outs_above_average', {'player_id', 'year', 'position'}, start_year, end_year, iter_year, update)
+    yield from run_years('outs_above_average', {'player_id', 'year', 'position'},
+                         start_year, end_year, iter_year, update)
 
 
 @dlt.resource(name='fielding_run_value', write_disposition='merge', primary_key=['id', 'year', 'position'])
 def fielding_run_value(start_year: int, end_year: int, update: bool = False) -> Iterator:
     def iter_year(y):
         for pos in FIELDING_POSITIONS:
-            url = f'{BASE_URL}/fielding-run-value?type=fielder&seasonStart={y}&seasonEnd={y}&position={pos}&minInnings=0.1&minResults=0.1&csv=true'
+            url = f'{BASE_URL}/fielding-run-value?type=fielder&seasonStart={y}&seasonEnd={y}&position={pos}&minInnings=0.1&minResults=0.1&csv=true'  # noqa: E501
             yield ({'position': pos}, url)
     yield from run_years('fielding_run_value', {'id', 'year', 'position'}, start_year, end_year, iter_year, update)
 
@@ -84,7 +85,7 @@ def catcher_poptime(start_year: int, end_year: int, update: bool = False) -> Ite
 def catcher_framing(start_year: int, end_year: int, update: bool = False) -> Iterator:
     yield from run_years(
         'catcher_framing', {'id', 'year'}, start_year, end_year,
-        lambda y: [({}, f'{BASE_URL}/catcher-framing?type=catcher&seasonStart={y}&seasonEnd={y}&team=&min=0&sortColumn=rv_tot&sortDirection=desc&csv=true')],
+        lambda y: [({}, f'{BASE_URL}/catcher-framing?type=catcher&seasonStart={y}&seasonEnd={y}&team=&min=0&sortColumn=rv_tot&sortDirection=desc&csv=true')],  # noqa: E501
         update,
     )
 

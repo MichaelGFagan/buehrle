@@ -6,8 +6,8 @@ Usage: python check_column_names.py [bat|pit|fld]  (default: bat)
 """
 import re
 import sys
-import requests
 
+import requests
 from dlt.common.normalizers.naming.snake_case import NamingConvention as SnakeCaseNaming
 
 BASE_FANGRAPHS_URL = 'https://www.fangraphs.com/api/leaders/major-league/data'

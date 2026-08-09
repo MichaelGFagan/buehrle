@@ -6,8 +6,7 @@ loaders/mlb_statsapi/schedules.py for the reference implementation.
 
 import argparse
 import datetime
-
-from typing import Callable
+from collections.abc import Callable
 
 from loaders.dlt_utils import handle_full_refresh
 

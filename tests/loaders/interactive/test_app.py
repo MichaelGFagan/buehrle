@@ -23,7 +23,7 @@ async def _push_and_settle(screen):
             try:
                 await asyncio.wait_for(pilot.pause(), timeout=0.5)
                 break
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
         mounted = screen.is_mounted
         child_count = len(screen.children)

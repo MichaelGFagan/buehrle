@@ -1,11 +1,11 @@
 import datetime
 import logging
 import time
+from collections.abc import Callable, Iterator
+
 import dlt
 import polars as pl
 import requests
-
-from typing import Callable, Iterator
 
 from loaders.dlt_utils import to_arrow
 
@@ -16,7 +16,7 @@ TODAY = datetime.date.today()
 SAVANT_HOST = 'https://baseballsavant.mlb.com'
 BASE_URL = f'{SAVANT_HOST}/leaderboard'
 
-USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'
+USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36'  # noqa: E501
 REQUEST_TIMEOUT = 60
 SLEEP_BETWEEN = 1
 

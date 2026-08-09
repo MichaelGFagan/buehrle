@@ -16,7 +16,7 @@ from __future__ import annotations
 import os
 import subprocess
 import sys
-from typing import Callable, Sequence
+from collections.abc import Callable, Sequence
 
 from loaders.interactive.core import Job
 
