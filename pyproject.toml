@@ -33,7 +33,18 @@ dev = [
     "pytest>=9.0.3",
     "pytest-cov>=7.1.0",
     "responses>=0.26.0",
+    "ruff>=0.9.0",
 ]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 120
+extend-exclude = ["buehrle_dbt", ".venv"]
+
+[tool.ruff.lint]
+# Pinned explicitly so linting is deterministic regardless of any user-level
+# ruff config. E/F = pyflakes+pycodestyle, I = import sorting, UP = pyupgrade.
+select = ["E", "F", "I", "UP"]
 
 [tool.pytest.ini_options]
 filterwarnings = [

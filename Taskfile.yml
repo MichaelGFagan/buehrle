@@ -1,0 +1,146 @@
+# Task runner for buehrle. Install Task: brew install go-task
+# Run `task` (or `task --list`) to see everything.
+version: '3'
+
+vars:
+  TESTS: tests/
+  DB: data/buehrle-raw.duckdb
+  SMOKE_DB: /tmp/buehrle-smoke.duckdb
+  # Loaders that take --full-history --full-refresh (season/date scoped).
+  SCOPED_LOADERS: >-
+    mlb-statsapi-schedules fangraphs statcast-pitches statcast-batting
+    statcast-pitching statcast-fielding statcast-running baseball-reference-draft
+    retrosheet-events retrosheet-game-logs retrosheet-schedules
+    retrosheet-rosters retrosheet-umpires
+  # Single-shot loaders that take --full-refresh only (no --full-history).
+  REPLACE_LOADERS: baseball-reference-war chadwick-register lahman
+
+tasks:
+  default:
+    desc: List all available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  # ---------- setup / prerequisites ----------
+
+  setup:
+    desc: Install Python dependencies from the lockfile
+    cmds:
+      - uv sync
+
+  prereqs:
+    desc: Install system tools (Chadwick cwtools + optional duckdb CLI) via Homebrew
+    cmds:
+      - uv run buehrle install-chadwick
+      - cmd: brew install duckdb
+        ignore_error: true
+
+  doctor:
+    desc: Verify required tools and data are present (installs nothing)
+    silent: true
+    cmds:
+      - |
+        miss=0
+        req()  { if command -v "$1" >/dev/null 2>&1; then echo "  ok    $1"; else echo "  MISS  $1 — $2"; miss=1; fi; }
+        opt()  { if command -v "$1" >/dev/null 2>&1; then echo "  ok    $1"; else echo "  opt   $1 — $2"; fi; }
+        echo "Required tools:"
+        req uv      "install from https://astral.sh/uv"
+        req git     "install Xcode command-line tools"
+        req brew    "install from https://brew.sh (needed for chadwick/duckdb)"
+        req cwevent "run: task prereqs"
+        echo "Optional tools:"
+        opt duckdb  "CLI for ad-hoc SQL — brew install duckdb"
+        opt task    "you clearly have it"
+        echo "Data:"
+        if [ -d data/retrosheet/.git ]; then echo "  ok    retrosheet clone"; else echo "  MISS  retrosheet clone — run: task sync"; miss=1; fi
+        exit $miss
+
+  # ---------- quality ----------
+
+  lint:
+    desc: Lint with ruff
+    cmds:
+      - uv run ruff check .
+
+  fmt:
+    desc: Autofix and format with ruff
+    cmds:
+      - uv run ruff check --fix .
+      - uv run ruff format .
+
+  test:
+    desc: 'Run all tests (pass extra args after --, e.g. task test -- -k schedules)'
+    cmds:
+      - uv run pytest {{.TESTS}} {{.CLI_ARGS}}
+
+  test-cov:
+    desc: Run the full suite with the coverage gate (fail_under=90)
+    cmds:
+      - uv run pytest {{.TESTS}} --cov=loaders --cov-report=term-missing
+
+  test-core:
+    desc: Tests for the shared CLI / dlt_utils / state modules
+    cmds:
+      - uv run pytest tests/loaders/test_cli.py tests/loaders/test_dlt_utils.py tests/loaders/test_state.py {{.CLI_ARGS}}
+
+  test-interactive:
+    desc: Tests for the interactive TUI core + runner
+    cmds:
+      - uv run pytest tests/loaders/interactive {{.CLI_ARGS}}
+
+  check:
+    desc: Lint + full test suite with coverage (what CI runs)
+    cmds:
+      - task: lint
+      - task: test-cov
+
+  # ---------- data operations ----------
+
+  state:
+    desc: Show loader freshness / status
+    cmds:
+      - uv run buehrle state
+
+  sync:
+    desc: Clone/update the Retrosheet repo (required before any retrosheet loader)
+    cmds:
+      - uv run buehrle retrosheet-sync
+
+  smoke:
+    desc: 'Run a loader against a throwaway DB (e.g. task smoke -- mlb-statsapi-schedules --date 2025-04-01)'
+    env:
+      BUEHRLE_DB: '{{.SMOKE_DB}}'
+    cmds:
+      - defer: rm -f {{.SMOKE_DB}} {{.SMOKE_DB}}.wal
+      - uv run buehrle load {{.CLI_ARGS}}
+      - uv run buehrle state
+
+  backfill:
+    desc: 'Full-history full-refresh of one season-scoped loader (e.g. task backfill -- fangraphs)'
+    cmds:
+      - uv run buehrle load {{.CLI_ARGS}} --full-history --full-refresh
+
+  backfill-replace:
+    desc: 'Full-refresh a single-shot loader — war/chadwick/lahman (e.g. task backfill-replace -- lahman)'
+    cmds:
+      - uv run buehrle load {{.CLI_ARGS}} --full-refresh
+
+  backfill-all:
+    desc: Backfill EVERY loader from full history (drops each schema first). Slow.
+    cmds:
+      - task: sync
+      - for: { var: SCOPED_LOADERS }
+        cmd: uv run buehrle load {{.ITEM}} --full-history --full-refresh
+      - for: { var: REPLACE_LOADERS }
+        cmd: uv run buehrle load {{.ITEM}} --full-refresh
+
+  drop-db:
+    desc: Delete the raw DuckDB file (destructive)
+    cmds:
+      - uv run buehrle drop-db --yes
+
+  drop-schema:
+    desc: 'Drop one schema (e.g. task drop-schema -- baseball_reference)'
+    cmds:
+      - uv run python -c "import duckdb; duckdb.connect('{{.DB}}').execute('DROP SCHEMA IF EXISTS {{.CLI_ARGS}} CASCADE')"
