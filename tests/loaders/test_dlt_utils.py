@@ -1,7 +1,25 @@
 import polars as pl
 import pyarrow as pa
 
-from loaders.dlt_utils import to_arrow
+from loaders.dlt_utils import DEFAULT_DB_PATH, resolve_db_path, to_arrow
+
+
+def test_resolve_db_path_defaults_without_env(monkeypatch):
+    monkeypatch.delenv('BUEHRLE_DB', raising=False)
+    assert resolve_db_path() == DEFAULT_DB_PATH
+
+
+def test_resolve_db_path_honors_env_override(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_DB', '/tmp/smoke.duckdb')
+    assert resolve_db_path() == '/tmp/smoke.duckdb'
+
+
+def test_make_pipeline_targets_env_override(monkeypatch, tmp_path):
+    from loaders.dlt_utils import make_pipeline
+    target = tmp_path / 'smoke.duckdb'
+    monkeypatch.setenv('BUEHRLE_DB', str(target))
+    pipeline = make_pipeline('env_override_test')
+    assert str(target) in pipeline.destination.config_params['credentials']
 
 
 def test_large_utf8_pk_column_becomes_utf8_non_nullable():

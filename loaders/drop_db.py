@@ -12,9 +12,9 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from loaders.dlt_utils import DB_PATH
+from loaders.dlt_utils import resolve_db_path
 
-DEFAULT_DB = Path(DB_PATH).resolve()
+DEFAULT_DB = Path(resolve_db_path()).resolve()
 
 
 def register(subparsers):

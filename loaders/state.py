@@ -8,14 +8,18 @@ the same per-loader status via :func:`loader_status`.
 
 from __future__ import annotations
 
+import os
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Iterable
 
 import duckdb
 
-DEFAULT_DB = Path(__file__).resolve().parent.parent / 'data' / 'buehrle-raw.duckdb'
+DEFAULT_DB = Path(
+    os.environ.get('BUEHRLE_DB')
+    or Path(__file__).resolve().parent.parent / 'data' / 'buehrle-raw.duckdb'
+)
 
 
 def schema_exists(con: duckdb.DuckDBPyConnection, schema: str) -> bool:
