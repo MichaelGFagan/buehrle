@@ -191,7 +191,7 @@ class GridScreen(Screen):
         Binding('i', 'toggle_incremental', 'Incremental'),
         Binding('f', 'toggle_full', 'Full refresh'),
         Binding('space', 'cycle', 'Cycle'),
-        Binding('enter', 'run', 'Run selected'),
+        Binding('r', 'run', 'Run selected'),
         Binding('escape', 'back', 'Back'),
     ]
 
@@ -206,7 +206,7 @@ class GridScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        self.sub_title = 'select loads — Enter to run'
+        self.sub_title = 'select loads — press r to run'
         table = self.query_one('#grid', DataTable)
         table.add_columns(*_GRID_COLUMNS)
         for row in self._rows:
