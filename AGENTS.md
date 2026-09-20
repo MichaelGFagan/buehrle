@@ -134,3 +134,13 @@ table = table.cast(schema)
 ```
 
 In practice, prefer `loaders.dlt_utils.to_arrow(df, primary_keys)`, which encapsulates this.
+
+## Backends
+
+The destination backend is controlled by `BUEHRLE_BACKEND` (`duckdb` default | `ducklake`). All backend selection lives in `loaders/dlt_utils.py`; loaders, `cli.py`, and `run_loader` need no changes when switching backends.
+
+DuckLake-specific env vars (all optional - defaults point at the local Docker instance):
+- `BUEHRLE_DUCKLAKE_CATALOG` - Postgres DSN (default: `postgresql://buehrle:buehrle@localhost:5432/buehrle_ducklake`)
+- `BUEHRLE_DUCKLAKE_STORAGE` - Parquet data directory (default: `data/ducklake/`)
+
+Start the DuckLake catalog: `docker compose up -d`

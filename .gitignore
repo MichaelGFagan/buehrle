@@ -5,4 +5,5 @@ __pycache__
 MLB-StatsAPI/
 .clineignore
 .clinerules
+data/ducklake/
 

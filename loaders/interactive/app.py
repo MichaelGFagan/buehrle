@@ -15,7 +15,6 @@ from __future__ import annotations
 import datetime
 from pathlib import Path
 
-import duckdb
 from textual import work
 from textual.app import App, ComposeResult
 from textual.binding import Binding
@@ -58,14 +57,18 @@ def _never_loaded_status(module) -> LoaderStatus:
 def load_rows(db: Path) -> list[LoaderRow]:
     """Read every registered loader's status into grid rows.
 
-    A missing DB file means nothing has been loaded yet, so every row is
-    synthesised as never-loaded rather than erroring.
+    For the duckdb backend, a missing DB file means nothing has been loaded
+    yet, so every row is synthesised as never-loaded rather than erroring.
+    For the ducklake backend, the file check is meaningless, so we always
+    open the catalog and let ``loader_status`` yield never-loaded rows for
+    any schema that doesn't exist yet.
     """
+    from loaders.dlt_utils import open_read_connection, resolve_backend
     from loaders.registry import data_loaders
 
     modules = data_loaders()
-    if db.exists():
-        con = duckdb.connect(str(db), read_only=True)
+    if resolve_backend() == 'ducklake' or db.exists():
+        con = open_read_connection(str(db))
         try:
             statuses = [loader_status(con, module) for module in modules]
         finally:

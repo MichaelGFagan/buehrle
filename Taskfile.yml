@@ -136,9 +136,9 @@ tasks:
         cmd: uv run buehrle load {{.ITEM}} --full-refresh
 
   drop-db:
-    desc: Delete the raw DuckDB file (destructive)
+    desc: 'Delete the active backend (destructive). Use --target duckdb|ducklake|both to override. Full DuckLake wipe: task drop-db -- --target both, then docker compose down -v'
     cmds:
-      - uv run buehrle drop-db --yes
+      - uv run buehrle drop-db --yes {{.CLI_ARGS}}
 
   drop-schema:
     desc: 'Drop one schema (e.g. task drop-schema -- baseball_reference)'

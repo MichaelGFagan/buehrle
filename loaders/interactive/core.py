@@ -6,7 +6,7 @@ Kept free of any UI or subprocess code so it can be unit-tested under the
 :mod:`loaders.interactive.app`, which is omitted from coverage.
 
 Two grid actions, both translated here into the flags a loader's CLI subcommand
-already understands (see CLAUDE.md > "Loader CLI conventions"):
+already understands (see AGENTS.md > "Loader CLI conventions"):
 
 - **incremental** — smart, watermark-driven. Re-load from the loader's *oldest*
   table watermark (inclusive — cheap insurance, dlt merges idempotently) through

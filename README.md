@@ -18,6 +18,25 @@ Each source has a Python loader under [loaders/](loaders/) that uses [dlt](https
 
 A dbt project lives under [buehrle_dbt/](buehrle_dbt/) and reads from the loader-produced schemas. It is not documented yet.
 
+## Backends
+
+Loaders write to a local DuckDB file (`data/buehrle-raw.duckdb`) by default. Set `BUEHRLE_BACKEND=ducklake` to write to DuckLake instead - a Postgres-backed catalog with Parquet data files that supports concurrent writes.
+
+To use DuckLake, start the local Postgres catalog first:
+
+```sh
+docker compose up -d
+```
+
+Then prefix any load or state command:
+
+```sh
+BUEHRLE_BACKEND=ducklake uv run buehrle load lahman --full-refresh
+BUEHRLE_BACKEND=ducklake uv run buehrle state
+```
+
+See `AGENTS.md` for the full list of DuckLake env vars.
+
 ## Docs
 
 - [Getting started](docs/getting_started.md) — install, prerequisites, first run

@@ -1,6 +1,6 @@
 """Shared CLI helpers for loaders following the standard scope convention.
 
-See CLAUDE.md > "Loader CLI conventions" for the spec, and
+See AGENTS.md > "Loader CLI conventions" for the spec, and
 loaders/mlb_statsapi/schedules.py for the reference implementation.
 """
 

@@ -182,14 +182,15 @@ def register(subparsers):
     parser.add_argument('--mode', choices=['schema', 'table'], default='schema',
                         help='Report granularity (default: schema)')
     parser.add_argument('--db', type=Path, default=DEFAULT_DB,
-                        help=f'Path to DuckDB file (default: {DEFAULT_DB})')
+                        help=f'Path to DuckDB file (default: {DEFAULT_DB}); ignored when BUEHRLE_BACKEND=ducklake')
     parser.set_defaults(func=lambda args: main(parser, args))
 
 
 def main(parser, args) -> None:
     from loaders.registry import data_loaders  # lazy: registry imports this module
+    from loaders.dlt_utils import open_read_connection
 
-    con = duckdb.connect(str(args.db), read_only=True)
+    con = open_read_connection(str(args.db))
     loaders = data_loaders()
     statuses = [loader_status(con, module) for module in loaders]
 
