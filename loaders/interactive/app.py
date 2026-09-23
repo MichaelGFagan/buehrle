@@ -32,60 +32,26 @@ from loaders.interactive.core import (
     Job,
     LoaderRow,
     MenuItem,
-    build_row,
     loader_jobs,
     menu_items,
+    resolve_max_concurrency,
     selected_commands,
     utility_job,
+    worker_count,
 )
-from loaders.interactive.runner import stream_jobs
-from loaders.state import DEFAULT_DB, LoaderStatus, fmt, loader_status
-
-
-def _never_loaded_status(module) -> LoaderStatus:
-    return LoaderStatus(
-        schema=module.PIPELINE_NAME,
-        table_count=0,
-        last_load=None,
-        load_count=0,
-        watermarks={table: None for table in module.WATERMARKS},
-        oldest=None,
-        full_refresh_only=not module.WATERMARKS,
-    )
-
-
-def load_rows(db: Path) -> list[LoaderRow]:
-    """Read every registered loader's status into grid rows.
-
-    For the duckdb backend, a missing DB file means nothing has been loaded
-    yet, so every row is synthesised as never-loaded rather than erroring.
-    For the ducklake backend, the file check is meaningless, so we always
-    open the catalog and let ``loader_status`` yield never-loaded rows for
-    any schema that doesn't exist yet.
-    """
-    from loaders.dlt_utils import open_read_connection, resolve_backend
-    from loaders.registry import data_loaders
-
-    modules = data_loaders()
-    if resolve_backend() == 'ducklake' or db.exists():
-        con = open_read_connection(str(db))
-        try:
-            statuses = [loader_status(con, module) for module in modules]
-        finally:
-            con.close()
-    else:
-        statuses = [_never_loaded_status(module) for module in modules]
-    return [build_row(module, status) for module, status in zip(modules, statuses)]
-
+from loaders.interactive.runner import run_jobs
+from loaders.state import DEFAULT_DB, fmt, load_rows
 
 # --- run screen ------------------------------------------------------------
 
 class RunScreen(Screen):
     """Streams one or more jobs' subprocess output into an in-app log.
 
-    Jobs run sequentially (continue-on-error). The screen stays up after they
-    finish so the output remains readable; Escape returns to the previous
-    screen.
+    Jobs run continue-on-error. Whether they run sequentially or concurrently
+    depends on the backend: DuckDB (single-writer) always runs one at a time,
+    while DuckLake runs up to :func:`resolve_max_concurrency` jobs in parallel.
+    The screen stays up after they finish so the output remains readable;
+    Escape returns to the previous screen.
     """
 
     BINDINGS = [Binding('escape', 'back', 'Back', show=True)]
@@ -120,10 +86,15 @@ class RunScreen(Screen):
     @work(thread=True)
     def _run_jobs(self, log: Log) -> None:
         # Runs off the event loop so a blocking subprocess never freezes the UI.
+        from loaders.dlt_utils import resolve_backend
+
         def write(line: str) -> None:
             self.app.call_from_thread(log.write_line, line)
 
-        stream_jobs(self._jobs, write)
+        max_workers = worker_count(
+            resolve_backend(), len(self._jobs), resolve_max_concurrency()
+        )
+        run_jobs(self._jobs, write, max_workers=max_workers)
         self.app.call_from_thread(self._on_finished)
 
     def _on_finished(self) -> None:
@@ -252,7 +223,20 @@ class GridScreen(Screen):
         intro += [f'  buehrle load {command} {" ".join(flags)}' for command, flags in plans]
         if any('--full-refresh' in flags for _, flags in plans):
             intro.append('Note: full-refresh rebuilds drop and reload from scratch and can be slow.')
+        intro.append(self._concurrency_notice(len(jobs)))
         self.app.push_screen(RunScreen(jobs, intro=intro))
+
+    def _concurrency_notice(self, job_count: int) -> str:
+        """One line stating whether this run will be sequential or concurrent."""
+        from loaders.dlt_utils import resolve_backend
+
+        backend = resolve_backend()
+        workers = worker_count(backend, job_count, resolve_max_concurrency())
+        if workers > 1:
+            return f'Running {job_count} loaders concurrently, up to {workers} at once (DuckLake).'
+        if backend == 'duckdb':
+            return 'Running sequentially (DuckDB backend does not support concurrent writes).'
+        return 'Running sequentially.'
 
 
 # --- main menu -------------------------------------------------------------

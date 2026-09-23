@@ -5,7 +5,7 @@ view, and the interactive grid can all share one loader list without an
 import cycle (``state`` imports this lazily; this imports ``state``).
 """
 
-from loaders import drop_db, state
+from loaders import drop_db, loads, state
 from loaders.baseball_reference import baseball_reference_draft_results, baseball_reference_war
 from loaders.chadwick import chadwick_register
 from loaders.fangraphs import fangraphs
@@ -36,6 +36,7 @@ LOADERS = [
     install_chadwick,
     drop_db,
     lahman,
+    loads,
     mlb_statsapi_schedules,
     retrosheet_events,
     retrosheet_game_logs,

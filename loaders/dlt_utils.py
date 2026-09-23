@@ -33,8 +33,39 @@ def ducklake_storage_path() -> str:
 
     Override with ``BUEHRLE_DUCKLAKE_STORAGE``; defaults to ``data/ducklake/``
     under the repo root.
+
+    Normalised (``..`` segments collapsed, trailing separator kept) so it
+    byte-matches the ``data_path`` dlt records in the catalog. Without this the
+    read path's ``ATTACH`` fails with a "does not match existing data path"
+    error, since the write path's raw ``loaders/../data/ducklake/`` differs from
+    the stored, normalised value.
+
+    A remote URI (anything containing ``://``, e.g. ``s3://bucket/ducklake/``)
+    is returned as-is apart from collapsing to a single trailing ``/``. Running
+    it through ``os.path.normpath`` would corrupt the scheme separator
+    (``s3://bucket/`` -> ``s3:/bucket/``).
     """
-    return os.environ.get('BUEHRLE_DUCKLAKE_STORAGE', _DEFAULT_DUCKLAKE_STORAGE)
+    raw = os.environ.get('BUEHRLE_DUCKLAKE_STORAGE', _DEFAULT_DUCKLAKE_STORAGE)
+    if '://' in raw:
+        return raw.rstrip('/') + '/'
+    return os.path.normpath(raw) + os.sep
+
+
+def ducklake_s3_config() -> dict[str, str] | None:
+    """S3-compatible credentials for a remotely-readable DuckLake, or None.
+
+    Returns ``None`` unless ``BUEHRLE_DUCKLAKE_STORAGE`` is a remote URI, in
+    which case the S3 access keys / endpoint / region are read from env. Keeps
+    the local DuckLake dir path (no ``://``) on the credential-free code path.
+    """
+    if '://' not in ducklake_storage_path():
+        return None
+    return {
+        'key_id': os.environ['BUEHRLE_DUCKLAKE_S3_KEY_ID'],
+        'secret': os.environ['BUEHRLE_DUCKLAKE_S3_SECRET'],
+        'endpoint': os.environ['BUEHRLE_DUCKLAKE_S3_ENDPOINT'],
+        'region': os.environ.get('BUEHRLE_DUCKLAKE_S3_REGION', ''),
+    }
 
 
 def resolve_db_path() -> str:
@@ -51,9 +82,25 @@ def resolve_db_path() -> str:
 def make_pipeline(name: str):
     if resolve_backend() == 'ducklake':
         from dlt.destinations.impl.ducklake.configuration import DuckLakeCredentials
+        s3 = ducklake_s3_config()
+        if s3:
+            from dlt.common.configuration.specs import AwsCredentials
+            from dlt.common.storages.configuration import FilesystemConfiguration
+            storage = FilesystemConfiguration(
+                bucket_url=ducklake_storage_path(),
+                credentials=AwsCredentials(
+                    aws_access_key_id=s3['key_id'],
+                    aws_secret_access_key=s3['secret'],
+                    endpoint_url=s3['endpoint'],
+                    region_name=s3['region'] or None,
+                    s3_url_style='path',
+                ),
+            )
+        else:
+            storage = ducklake_storage_path()
         credentials = DuckLakeCredentials(
             catalog=ducklake_catalog_dsn(),
-            storage=ducklake_storage_path(),
+            storage=storage,
         )
         destination = dlt.destinations.ducklake(credentials=credentials)
     else:
@@ -86,9 +133,31 @@ def open_read_connection(db_path: str | None = None):
         con.execute('INSTALL postgres; LOAD postgres;')
         dsn = ducklake_catalog_dsn()
         storage = ducklake_storage_path()
+        s3 = ducklake_s3_config()
+        if s3:
+            con.execute('INSTALL httpfs; LOAD httpfs;')
+            # DuckDB's S3 secret wants a bare host:port plus USE_SSL, unlike
+            # dlt's filesystem credential above which takes a full endpoint
+            # URL. Accept either form in BUEHRLE_DUCKLAKE_S3_ENDPOINT and split
+            # out the scheme here so 'http://localhost:19000' and a plain
+            # 'objects.example.com' both work.
+            from urllib.parse import urlsplit
+            endpoint = s3['endpoint']
+            parsed = urlsplit(endpoint if '://' in endpoint else f'https://{endpoint}')
+            use_ssl = parsed.scheme != 'http'
+            region = f", REGION '{s3['region']}'" if s3['region'] else ''
+            con.execute(
+                "CREATE SECRET ducklake_s3 (TYPE s3, "
+                f"KEY_ID '{s3['key_id']}', SECRET '{s3['secret']}', "
+                f"ENDPOINT '{parsed.netloc}', URL_STYLE 'path', "
+                f"USE_SSL {str(use_ssl).lower()}{region})"
+            )
+        # METADATA_SCHEMA must match where dlt's ducklake destination stores its
+        # catalog tables (the postgres 'ducklake' schema); the DuckLake default
+        # would look elsewhere and report the catalog as missing.
         con.execute(
             f"ATTACH 'ducklake:postgres:{dsn}' AS ducklake "
-            f"(DATA_PATH '{storage}', READ_ONLY)"
+            f"(DATA_PATH '{storage}', READ_ONLY, METADATA_SCHEMA 'ducklake')"
         )
         con.execute('USE ducklake;')
         return con

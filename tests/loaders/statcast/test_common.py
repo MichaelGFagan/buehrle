@@ -28,6 +28,21 @@ def test_inject_labels_handles_mix_of_new_and_existing():
     assert result['year'].to_list() == ['2024', '2024']
 
 
+def test_inject_labels_overwrites_blank_existing_column():
+    # Savant's outs_above_average ships an empty 'year' column; the queried year
+    # is authoritative, so a blank column gets overwritten (not preserved).
+    df = pl.DataFrame({'player_id': ['a', 'b'], 'year': ['', '']})
+    result = inject_labels(df, {'year': 2024})
+    assert result['year'].to_list() == ['2024', '2024']
+
+
+def test_inject_labels_keeps_partially_populated_column():
+    # A column with any real value is kept as-is, not clobbered.
+    df = pl.DataFrame({'year': ['2023', '']})
+    result = inject_labels(df, {'year': 2024})
+    assert result['year'].to_list() == ['2023', '']
+
+
 def test_inject_labels_empty_dict_returns_df_unchanged():
     df = pl.DataFrame({'player_id': ['a', 'b']})
     result = inject_labels(df, {})

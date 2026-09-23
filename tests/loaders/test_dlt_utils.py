@@ -1,7 +1,7 @@
 import polars as pl
 import pyarrow as pa
 
-from loaders.dlt_utils import DEFAULT_DB_PATH, resolve_db_path, to_arrow
+from loaders.dlt_utils import DEFAULT_DB_PATH, ducklake_storage_path, resolve_db_path, to_arrow
 
 
 def test_resolve_db_path_defaults_without_env(monkeypatch):
@@ -12,6 +12,21 @@ def test_resolve_db_path_defaults_without_env(monkeypatch):
 def test_resolve_db_path_honors_env_override(monkeypatch):
     monkeypatch.setenv('BUEHRLE_DB', '/tmp/smoke.duckdb')
     assert resolve_db_path() == '/tmp/smoke.duckdb'
+
+
+def test_ducklake_storage_path_normalizes_local_path(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_DUCKLAKE_STORAGE', '/tmp/foo/../ducklake')
+    assert ducklake_storage_path() == '/tmp/ducklake/'
+
+
+def test_ducklake_storage_path_passes_through_remote_uri(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_DUCKLAKE_STORAGE', 's3://bucket/ducklake')
+    assert ducklake_storage_path() == 's3://bucket/ducklake/'
+
+
+def test_ducklake_storage_path_remote_uri_keeps_single_trailing_slash(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_DUCKLAKE_STORAGE', 's3://bucket/ducklake/')
+    assert ducklake_storage_path() == 's3://bucket/ducklake/'
 
 
 def test_make_pipeline_targets_env_override(monkeypatch, tmp_path):

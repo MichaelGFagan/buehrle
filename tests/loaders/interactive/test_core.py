@@ -223,9 +223,10 @@ def test_menu_command_names_match_registered_utilities():
     from loaders.registry import utilities
     registered = {core.command_name(m) for m in utilities()}
     menu_commands = {it.command for it in core.menu_items() if it.kind == core.RUN}
-    # `state` is a CLI utility but intentionally absent from the menu (its info
-    # is shown in the grid).
-    assert menu_commands == registered - {'state'}
+    # `state` and `loads` are CLI utilities intentionally absent from the
+    # menu: `state`'s info is shown in the grid, and the grid's `r` action
+    # already runs selected loaders (concurrently on DuckLake).
+    assert menu_commands == registered - {'state', 'loads'}
 
 
 def test_drop_db_item_is_confirmed_and_passes_yes():
@@ -289,3 +290,41 @@ def test_utility_job_forwards_db_and_flags():
     job = core.utility_job(drop, db='/tmp/x.duckdb')
     assert job.label == 'drop-db'
     assert job.argv_tail == ['drop-db', '--yes', '--db', '/tmp/x.duckdb']
+
+
+# --- concurrency gating ----------------------------------------------------
+
+def test_resolve_max_concurrency_default(monkeypatch):
+    monkeypatch.delenv('BUEHRLE_MAX_CONCURRENCY', raising=False)
+    assert core.resolve_max_concurrency() == core.DEFAULT_MAX_CONCURRENCY
+
+
+def test_resolve_max_concurrency_reads_env(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_MAX_CONCURRENCY', '7')
+    assert core.resolve_max_concurrency() == 7
+
+
+def test_resolve_max_concurrency_clamps_below_one(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_MAX_CONCURRENCY', '0')
+    assert core.resolve_max_concurrency() == 1
+
+
+def test_resolve_max_concurrency_bad_value_falls_back(monkeypatch):
+    monkeypatch.setenv('BUEHRLE_MAX_CONCURRENCY', 'lots')
+    assert core.resolve_max_concurrency() == core.DEFAULT_MAX_CONCURRENCY
+
+
+def test_worker_count_duckdb_always_one():
+    assert core.worker_count('duckdb', selected=5, cap=4) == 1
+
+
+def test_worker_count_single_selection_is_one():
+    assert core.worker_count('ducklake', selected=1, cap=4) == 1
+
+
+def test_worker_count_capped_by_cap():
+    assert core.worker_count('ducklake', selected=10, cap=4) == 4
+
+
+def test_worker_count_capped_by_selection():
+    assert core.worker_count('ducklake', selected=3, cap=4) == 3

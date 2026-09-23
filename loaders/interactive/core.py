@@ -20,11 +20,43 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import os
 import re
 from dataclasses import dataclass, field
 
 INCREMENTAL = 'incremental'
 FULL = 'full'
+
+DEFAULT_MAX_CONCURRENCY = 4
+
+
+def resolve_max_concurrency() -> int:
+    """Worker cap for concurrent loader runs.
+
+    Reads ``BUEHRLE_MAX_CONCURRENCY`` at call time (mirroring the ``resolve_*``
+    env pattern in :mod:`loaders.dlt_utils`), defaults to
+    :data:`DEFAULT_MAX_CONCURRENCY`, and clamps to ``>= 1``. A non-integer
+    value falls back to the default.
+    """
+    raw = os.environ.get('BUEHRLE_MAX_CONCURRENCY')
+    if raw is None:
+        return DEFAULT_MAX_CONCURRENCY
+    try:
+        return max(1, int(raw))
+    except ValueError:
+        return DEFAULT_MAX_CONCURRENCY
+
+
+def worker_count(backend: str, selected: int, cap: int) -> int:
+    """How many loaders to run at once, given the backend and selection size.
+
+    Returns ``1`` on the ``duckdb`` backend (the single-writer safety gate) or
+    when one-or-fewer loaders are selected; otherwise ``min(cap, selected)``.
+    This is the whole concurrency-gating rule.
+    """
+    if backend == 'duckdb' or selected <= 1:
+        return 1
+    return min(cap, selected)
 
 # Top-level menu item kinds.
 GRID = 'grid'   # open the loader status grid (in-app)

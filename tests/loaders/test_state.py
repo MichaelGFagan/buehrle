@@ -186,3 +186,42 @@ def test_main_table_mode(monkeypatch, capsys, db):
     # per-table watermark column populated for watermarked tables only
     bat_line = next(ln for ln in out.splitlines() if ln.startswith('good') and ' bat ' in f' {ln} ')
     assert '2024' in bat_line
+
+
+# --- fresh DuckLake catalog (attach fails) ---------------------------------
+
+def _raise_missing_catalog(*a, **k):
+    raise duckdb.InvalidInputException('Existing DuckLake ... does not exist')
+
+
+def test_main_schema_mode_fresh_ducklake(monkeypatch, capsys):
+    modules = [_module('good', {'bat': 'season'}), _module('single', {})]
+    monkeypatch.setattr('loaders.registry.data_loaders', lambda: modules)
+    monkeypatch.setattr('loaders.dlt_utils.open_read_connection', _raise_missing_catalog)
+    state.main(None, SimpleNamespace(mode='schema', db='ignored'))
+    out = capsys.readouterr().out
+    assert 'good' in out and 'single' in out
+    # every loader reported never-loaded: 0 tables, '-' watermark
+    good_line = next(ln for ln in out.splitlines() if ln.startswith('good'))
+    assert good_line.split()[1] == '0' and good_line.split()[-1] == '-'
+
+
+def test_main_table_mode_fresh_ducklake(monkeypatch, capsys):
+    modules = [_module('good', {'bat': 'season'})]
+    monkeypatch.setattr('loaders.registry.data_loaders', lambda: modules)
+    monkeypatch.setattr('loaders.dlt_utils.open_read_connection', _raise_missing_catalog)
+    state.main(None, SimpleNamespace(mode='table', db='ignored'))
+    out = capsys.readouterr().out
+    assert 'good' in out and 'table' in out
+
+
+def test_load_rows_fresh_ducklake(monkeypatch):
+    modules = [_module('good', {'bat': 'season'}), _module('single', {})]
+    monkeypatch.setattr('loaders.registry.data_loaders', lambda: modules)
+    monkeypatch.setattr('loaders.dlt_utils.resolve_backend', lambda: 'ducklake')
+    monkeypatch.setattr('loaders.dlt_utils.open_read_connection', _raise_missing_catalog)
+    monkeypatch.setattr('loaders.interactive.core.build_row',
+                        lambda module, status: status)
+    statuses = state.load_rows('ignored')
+    assert [s.schema for s in statuses] == ['good', 'single']
+    assert all(s.table_count == 0 and s.oldest is None for s in statuses)

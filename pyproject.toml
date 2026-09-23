@@ -7,6 +7,7 @@ requires-python = ">=3.12"
 dependencies = [
     "dbt-duckdb>=1.10.1",
     "dlt[duckdb]>=1.24.0",
+    "duckdb>=1.5.5",  # match the DuckLake extension version to the duckdb CLI (v1.5.5)
     "pandas>=2.3.3",
     "polars>=1.0.0",
     "prefect>=3.6.2",

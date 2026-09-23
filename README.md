@@ -37,6 +37,29 @@ BUEHRLE_BACKEND=ducklake uv run buehrle state
 
 See `AGENTS.md` for the full list of DuckLake env vars.
 
+## Running many loaders at once
+
+`buehrle loads` runs several loaders in one command, resolving the same
+watermark-driven incremental plan the interactive grid uses:
+
+```sh
+buehrle loads                           # every loader, incremental
+buehrle loads lahman chadwick-register
+buehrle loads --full-refresh            # clean rebuild of every loader
+```
+
+On the default DuckDB backend the loaders run one at a time, because a DuckDB
+file has a single writer. Set `BUEHRLE_BACKEND=ducklake` to run them
+concurrently:
+
+```sh
+BUEHRLE_BACKEND=ducklake uv run buehrle loads lahman chadwick-register
+```
+
+`BUEHRLE_MAX_CONCURRENCY` caps how many run at once (default 4); `--max-concurrency N`
+overrides it per run, and `--sequential` forces one at a time. The same
+concurrency applies when you select multiple loaders in the grid and press `r`.
+
 ## Docs
 
 - [Getting started](docs/getting_started.md) — install, prerequisites, first run

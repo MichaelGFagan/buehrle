@@ -141,6 +141,44 @@ The destination backend is controlled by `BUEHRLE_BACKEND` (`duckdb` default | `
 
 DuckLake-specific env vars (all optional - defaults point at the local Docker instance):
 - `BUEHRLE_DUCKLAKE_CATALOG` - Postgres DSN (default: `postgresql://buehrle:buehrle@localhost:5432/buehrle_ducklake`)
-- `BUEHRLE_DUCKLAKE_STORAGE` - Parquet data directory (default: `data/ducklake/`)
+- `BUEHRLE_DUCKLAKE_STORAGE` - Parquet data directory (default: `data/ducklake/`). Set this to
+  an S3-compatible URI (e.g. `s3://bucket/ducklake/`) for a remotely-readable DuckLake; a local
+  path (no `://`) keeps everything on disk as before.
 
 Start the DuckLake catalog: `docker compose up -d`
+
+### Remote (S3-compatible) DuckLake storage
+
+Required only when `BUEHRLE_DUCKLAKE_STORAGE` is a remote URI:
+- `BUEHRLE_DUCKLAKE_S3_KEY_ID` - access key ID
+- `BUEHRLE_DUCKLAKE_S3_SECRET` - secret access key
+- `BUEHRLE_DUCKLAKE_S3_ENDPOINT` - the S3-compatible endpoint. Accepts either a bare host
+  (`objects.example.com`, assumed HTTPS) or a full URL (`http://localhost:19000` for a local
+  test server). Both the write path (dlt's filesystem credential) and the read path (DuckDB's
+  `CREATE SECRET`) parse this the same way, so one value covers both.
+- `BUEHRLE_DUCKLAKE_S3_REGION` - optional, omit for providers that don't use regions
+
+Keep these in an untracked env file loaded by whatever runs the loader (cron/systemd unit) -
+never commit them.
+
+Local deploys are unaffected: with a local `BUEHRLE_DUCKLAKE_STORAGE`, none of the S3 code runs
+(`ducklake_s3_config()` returns `None`), so behavior is identical to today.
+
+## Running loaders concurrently
+
+`buehrle loads [loaders...]` (see `loaders/loads.py`) is the batch twin of
+the interactive grid: it resolves the same watermark-driven plan and runs the
+jobs through the shared runner in `loaders/interactive/runner.py`.
+
+Concurrency is gated to the DuckLake backend. A DuckDB file is single-writer, so
+two loader processes writing it collide on its lock; the gate
+(`worker_count` in `loaders/interactive/core.py`) forces one-at-a-time whenever
+`BUEHRLE_BACKEND` is `duckdb`. On DuckLake each loader writes its own schema, so
+parallel loaders never conflict at commit.
+
+- `BUEHRLE_MAX_CONCURRENCY` - worker cap for concurrent runs (default: 4, read at
+  call time like the other `resolve_*` env vars). `--max-concurrency N` overrides
+  it per run; `--sequential` forces one at a time.
+
+Both `buehrle loads` and the grid's "press r to run" flow share this gate, so
+the DuckDB path stays sequential and unchanged.

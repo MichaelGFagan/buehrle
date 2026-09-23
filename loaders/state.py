@@ -142,6 +142,58 @@ def loader_status(con: duckdb.DuckDBPyConnection, module) -> LoaderStatus:
     )
 
 
+def _never_loaded_status(module) -> LoaderStatus:
+    """Synthesise a never-loaded status row for a loader with no destination
+    schema yet (used on the duckdb backend when the DB file is absent)."""
+    return LoaderStatus(
+        schema=module.PIPELINE_NAME,
+        table_count=0,
+        last_load=None,
+        load_count=0,
+        watermarks={table: None for table in module.WATERMARKS},
+        oldest=None,
+        full_refresh_only=not module.WATERMARKS,
+    )
+
+
+def load_rows(db):
+    """Read every registered loader's status into grid rows.
+
+    Shared by the interactive grid and the ``loads`` CLI so neither
+    duplicates the status->rows pipeline (and the CLI needn't import Textual).
+
+    For the duckdb backend, a missing DB file means nothing has been loaded
+    yet, so every row is synthesised as never-loaded rather than erroring.
+    For the ducklake backend, the file check is meaningless, so we always
+    open the catalog and let :func:`loader_status` yield never-loaded rows for
+    any schema that doesn't exist yet.
+    """
+    import duckdb
+
+    from loaders.dlt_utils import open_read_connection, resolve_backend
+    from loaders.interactive.core import build_row
+    from loaders.registry import data_loaders
+
+    db = Path(db)
+    modules = data_loaders()
+    if resolve_backend() == 'ducklake' or db.exists():
+        try:
+            con = open_read_connection(str(db))
+        except duckdb.InvalidInputException:
+            # Fresh DuckLake: the catalog doesn't exist until the first load
+            # creates it, and the read path won't create it. Treat as
+            # never-loaded, mirroring a missing DuckDB file.
+            statuses = [_never_loaded_status(module) for module in modules]
+        else:
+            try:
+                statuses = [loader_status(con, module) for module in modules]
+            finally:
+                con.close()
+    else:
+        statuses = [_never_loaded_status(module) for module in modules]
+    return [build_row(module, status) for module, status in zip(modules, statuses)]
+
+
 def table_row(con: duckdb.DuckDBPyConnection, schema: str, table: str,
               watermark: str | None) -> tuple:
     rows = con.execute(f'SELECT COUNT(*) FROM "{schema}"."{table}"').fetchone()[0]
@@ -187,11 +239,24 @@ def register(subparsers):
 
 
 def main(parser, args) -> None:
-    from loaders.registry import data_loaders  # lazy: registry imports this module
-    from loaders.dlt_utils import open_read_connection
+    import duckdb
 
-    con = open_read_connection(str(args.db))
+    from loaders.dlt_utils import open_read_connection
+    from loaders.registry import data_loaders  # lazy: registry imports this module
+
     loaders = data_loaders()
+    try:
+        con = open_read_connection(str(args.db))
+    except duckdb.InvalidInputException:
+        # Fresh DuckLake catalog (not yet created by any load): report every
+        # loader as never-loaded rather than erroring.
+        if args.mode == 'schema':
+            print_table(['loader', 'tables', 'last_load', 'loads', 'watermark'],
+                        [(m.PIPELINE_NAME, 0, None, 0, None) for m in loaders])
+        else:
+            print_table(['loader', 'table', 'rows', 'last_load', 'loads', 'watermark'],
+                        [(m.PIPELINE_NAME, None, 0, None, 0, None) for m in loaders])
+        return
     statuses = [loader_status(con, module) for module in loaders]
 
     if args.mode == 'schema':

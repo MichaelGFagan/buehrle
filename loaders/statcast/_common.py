@@ -29,8 +29,18 @@ def fetch_csv(url: str) -> pl.DataFrame | None:
 
 
 def inject_labels(df: pl.DataFrame, labels: dict) -> pl.DataFrame:
-    existing = set(df.columns)
-    additions = [pl.lit(str(v)).alias(k) for k, v in labels.items() if k not in existing]
+    """Stamp query-parameter labels (year, position, ...) onto every row.
+
+    A label is the value we queried for, so it's authoritative. We add it when
+    the CSV lacks the column, and also overwrite an existing column that the
+    source left entirely blank/null - e.g. Savant's ``outs_above_average`` ships
+    an empty ``year`` column, which would otherwise blank the loader's watermark
+    and force a full-history reload next run.
+    """
+    additions = []
+    for k, v in labels.items():
+        if k not in df.columns or df[k].str.strip_chars().replace('', None).null_count() == df.height:
+            additions.append(pl.lit(str(v)).alias(k))
     return df.with_columns(additions) if additions else df
 
 
