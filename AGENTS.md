@@ -107,9 +107,14 @@ Baseball Reference sits behind Cloudflare, which blocks Hetzner's (and most clou
 IP ranges outright, and serves a JavaScript challenge that a plain `requests` call can't pass
 regardless of IP. Set `BASEBALL_REFERENCE_PROXY_URL` (e.g. an IPRoyal/Decodo-style unlocker
 proxy: `http://user:pass@host:port`) to route around this in production; unset locally, where
-the block doesn't apply. `loaders.dlt_utils.baseball_reference_proxies()` reads it and returns
-`None` when unset, so local dev is unaffected. Used by both `baseball_reference_war.py` and
-`baseball_reference_draft_results.py`.
+the block doesn't apply. `loaders.dlt_utils.baseball_reference_request_kwargs()` reads it and
+returns `{}` when unset, so local dev is unaffected. Used by both `baseball_reference_war.py`
+and `baseball_reference_draft_results.py`.
+
+When the proxy is set, the returned kwargs also include `verify=False`: unlocker-style proxies
+terminate TLS themselves to solve the JS challenge and present their own certificate rather than
+the target's, so normal certificate verification fails against them. This is scoped to requests
+routed through this specific proxy, not applied globally.
 
 ## Yielding data from resources
 
