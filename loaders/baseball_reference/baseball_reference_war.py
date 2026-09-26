@@ -1,4 +1,6 @@
+import html
 import logging
+import re
 from io import StringIO
 
 import dlt
@@ -20,6 +22,20 @@ PIPELINE_NAME = 'baseball_reference_war'  # destination schema (== dlt pipeline/
 WATERMARKS: dict[str, str] = {}
 
 
+def _extract_body_text(response) -> str:
+    """Return the file's plain text, unwrapping the HTML the IPRoyal Unblocker
+    proxy adds when it renders a .txt file through a headless browser (the
+    same '<html><body><pre>...' wrapper Chrome/Firefox show for a raw text
+    file opened directly). A no-op when hitting the file directly, since the
+    Content-Type won't be HTML in that case.
+    """
+    if 'html' in response.headers.get('Content-Type', '').lower():
+        match = re.search(r'<pre[^>]*>(.*)</pre>', response.text, re.DOTALL)
+        if match:
+            return html.unescape(match.group(1))
+    return response.text
+
+
 def _make_resource(stat: str, url: str):
 
     @dlt.resource(name=f'war_{stat}', write_disposition='replace')
@@ -27,7 +43,7 @@ def _make_resource(stat: str, url: str):
         logging.info(f'Fetching baseball reference {stat} WAR')
         response = requests.get(url, timeout=30, **baseball_reference_request_kwargs())
         response.raise_for_status()
-        df = pd.read_csv(StringIO(response.text))
+        df = pd.read_csv(StringIO(_extract_body_text(response)))
         yield from df.to_dict(orient='records')
 
     return _resource
