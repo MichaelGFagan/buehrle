@@ -68,21 +68,22 @@ def ducklake_s3_config() -> dict[str, str] | None:
     }
 
 
-def baseball_reference_request_kwargs() -> dict:
-    """Extra requests.get() kwargs for Baseball Reference scrapers.
+def scraper_request_kwargs() -> dict:
+    """Extra requests.get() kwargs for scrapers blocked by Cloudflare.
 
-    Baseball Reference sits behind Cloudflare, which blocks Hetzner's (and
-    most cloud providers') IP ranges outright. ``BASEBALL_REFERENCE_PROXY_URL``
-    points at a proxy/unlocker service that routes around this; unset locally,
-    where the block doesn't apply, in which case this returns ``{}``.
+    Several scraped sources (Baseball Reference, Fangraphs) sit behind
+    Cloudflare, which blocks Hetzner's (and most cloud providers') IP ranges
+    outright regardless of the requesting client. ``PROXY_URL`` points at a
+    proxy/unlocker service (e.g. IPRoyal's Unblocker) that routes around this;
+    unset locally, where the block doesn't apply, in which case this returns
+    ``{}``.
 
     ``verify=False`` is included alongside the proxy because unlocker-style
-    proxies (e.g. IPRoyal's Unblocker) terminate TLS themselves to solve the
-    site's JS challenge, presenting their own certificate rather than the
-    target's. Only disabled when routing through this specific proxy, not
-    globally.
+    proxies terminate TLS themselves to solve the site's JS challenge,
+    presenting their own certificate rather than the target's. Only disabled
+    when routing through this specific proxy, not globally.
     """
-    url = os.environ.get('BASEBALL_REFERENCE_PROXY_URL')
+    url = os.environ.get('PROXY_URL')
     if not url:
         return {}
     return {'proxies': {'http': url, 'https': url}, 'verify': False}

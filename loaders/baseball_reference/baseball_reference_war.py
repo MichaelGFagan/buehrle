@@ -8,7 +8,7 @@ import pandas as pd
 from dlt.sources.helpers import requests
 
 from loaders.cli import add_resources_arg, run_loader
-from loaders.dlt_utils import baseball_reference_request_kwargs, make_pipeline
+from loaders.dlt_utils import make_pipeline, scraper_request_kwargs
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -41,7 +41,7 @@ def _make_resource(stat: str, url: str):
     @dlt.resource(name=f'war_{stat}', write_disposition='replace')
     def _resource():
         logging.info(f'Fetching baseball reference {stat} WAR')
-        response = requests.get(url, timeout=30, **baseball_reference_request_kwargs())
+        response = requests.get(url, timeout=30, **scraper_request_kwargs())
         response.raise_for_status()
         df = pd.read_csv(StringIO(_extract_body_text(response)))
         yield from df.to_dict(orient='records')

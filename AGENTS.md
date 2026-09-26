@@ -101,15 +101,15 @@ import requests  # not from dlt.sources.helpers
 response = requests.get(url, timeout=30)
 ```
 
-### Baseball Reference proxy
+### Scraper proxy (Cloudflare-blocked sources)
 
-Baseball Reference sits behind Cloudflare, which blocks Hetzner's (and most cloud providers')
-IP ranges outright, and serves a JavaScript challenge that a plain `requests` call can't pass
-regardless of IP. Set `BASEBALL_REFERENCE_PROXY_URL` (e.g. an IPRoyal/Decodo-style unlocker
-proxy: `http://user:pass@host:port`) to route around this in production; unset locally, where
-the block doesn't apply. `loaders.dlt_utils.baseball_reference_request_kwargs()` reads it and
-returns `{}` when unset, so local dev is unaffected. Used by both `baseball_reference_war.py`
-and `baseball_reference_draft_results.py`.
+Some scraped sources (Baseball Reference, Fangraphs) sit behind Cloudflare, which blocks
+Hetzner's (and most cloud providers') IP ranges outright, independent of what client makes the
+request. Set `PROXY_URL` (e.g. an IPRoyal/Decodo-style unlocker proxy: `http://user:pass@host:port`)
+to route around this in production; unset locally, where the block doesn't apply.
+`loaders.dlt_utils.scraper_request_kwargs()` reads it and returns `{}` when unset, so local dev
+is unaffected. Used by `baseball_reference_war.py`, `baseball_reference_draft_results.py`, and
+`fangraphs.py`.
 
 When the proxy is set, the returned kwargs also include `verify=False`: unlocker-style proxies
 terminate TLS themselves to solve the JS challenge and present their own certificate rather than

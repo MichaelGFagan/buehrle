@@ -10,7 +10,7 @@ from dlt.common.normalizers.naming.snake_case import NamingConvention as SnakeCa
 from dlt.sources.helpers import requests
 
 from loaders.cli import add_resources_arg, add_season_args, resolve_seasons, run_loader, validate_season_args
-from loaders.dlt_utils import make_pipeline
+from loaders.dlt_utils import make_pipeline, scraper_request_kwargs
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -120,7 +120,7 @@ def _fetch_season(stat: FangraphsStat, season: int, playoff: FangraphsPlayoff) -
         'team': '0,to',
         'qual': 0,
     }
-    response = requests.get(BASE_FANGRAPHS_URL, params=params)
+    response = requests.get(BASE_FANGRAPHS_URL, params=params, timeout=30, **scraper_request_kwargs())
     response.raise_for_status()
     return response.json().get('data', [])
 
