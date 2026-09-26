@@ -13,7 +13,7 @@ import polars as pl
 import requests
 
 from loaders.cli import add_season_args, resolve_seasons, run_loader, validate_season_args
-from loaders.dlt_utils import make_pipeline, to_arrow
+from loaders.dlt_utils import baseball_reference_proxies, make_pipeline, to_arrow
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s', datefmt='%H:%M:%S')
 
@@ -93,7 +93,9 @@ def _clean_with_links(df: pd.DataFrame) -> pd.DataFrame:
 def _fetch_round(draft_type: str, year: int, round_num: int) -> pl.DataFrame | None:
     url = BASE_URL.format(year=year, round=round_num, draft_type=draft_type)
     logging.info(f'Fetching {draft_type} {year} round {round_num}')
-    response = requests.get(url, headers={'User-Agent': 'Test'}, timeout=30)
+    response = requests.get(
+        url, headers={'User-Agent': 'Test'}, proxies=baseball_reference_proxies(), timeout=30
+    )
     response.raise_for_status()
 
     logging.info('Parsing HTML tables')

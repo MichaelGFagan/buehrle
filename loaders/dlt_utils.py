@@ -68,6 +68,18 @@ def ducklake_s3_config() -> dict[str, str] | None:
     }
 
 
+def baseball_reference_proxies() -> dict[str, str] | None:
+    """Proxy config for Baseball Reference scrapers, or None if unset.
+
+    Baseball Reference sits behind Cloudflare, which blocks Hetzner's (and
+    most cloud providers') IP ranges outright. ``BASEBALL_REFERENCE_PROXY_URL``
+    points at a proxy/unlocker service that routes around this; unset locally,
+    where the block doesn't apply.
+    """
+    url = os.environ.get('BASEBALL_REFERENCE_PROXY_URL')
+    return {'http': url, 'https': url} if url else None
+
+
 def resolve_db_path() -> str:
     """The DuckDB file every loader writes to.
 

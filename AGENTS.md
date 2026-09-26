@@ -101,6 +101,16 @@ import requests  # not from dlt.sources.helpers
 response = requests.get(url, timeout=30)
 ```
 
+### Baseball Reference proxy
+
+Baseball Reference sits behind Cloudflare, which blocks Hetzner's (and most cloud providers')
+IP ranges outright, and serves a JavaScript challenge that a plain `requests` call can't pass
+regardless of IP. Set `BASEBALL_REFERENCE_PROXY_URL` (e.g. an IPRoyal/Decodo-style unlocker
+proxy: `http://user:pass@host:port`) to route around this in production; unset locally, where
+the block doesn't apply. `loaders.dlt_utils.baseball_reference_proxies()` reads it and returns
+`None` when unset, so local dev is unaffected. Used by both `baseball_reference_war.py` and
+`baseball_reference_draft_results.py`.
+
 ## Yielding data from resources
 
 Yield pyarrow tables, not Python dicts or polars DataFrames. dlt cannot JSON-serialize polars DataFrames and will raise `TypeError: Type is not JSON serializable: DataFrame`. Dicts work but are slow at scale — dlt normalizes them row-by-row in Python.
@@ -156,7 +166,9 @@ Required only when `BUEHRLE_DUCKLAKE_STORAGE` is a remote URI:
   (`objects.example.com`, assumed HTTPS) or a full URL (`http://localhost:19000` for a local
   test server). Both the write path (dlt's filesystem credential) and the read path (DuckDB's
   `CREATE SECRET`) parse this the same way, so one value covers both.
-- `BUEHRLE_DUCKLAKE_S3_REGION` - optional, omit for providers that don't use regions
+- `BUEHRLE_DUCKLAKE_S3_REGION` - required by some providers even when there's no real
+  region concept. Cloudflare R2 rejects a blank region; set this to `auto`. Omit only
+  for providers that don't validate it.
 
 Keep these in an untracked env file loaded by whatever runs the loader (cron/systemd unit) -
 never commit them.
