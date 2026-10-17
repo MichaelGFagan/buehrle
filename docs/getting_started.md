@@ -10,7 +10,7 @@ Install these yourself before setting up the project:
 
 - **Python 3.12+**
 - **[uv](https://docs.astral.sh/uv/)** — dependency manager; bootstraps everything else.
-- **[Homebrew](https://brew.sh)** — required by `task prereqs` to install the tools below.
+- **A C compiler and `make`** - required to build Chadwick. On macOS run `xcode-select --install`; on Debian/Ubuntu run `sudo apt install build-essential`.
 - **git** — required by `buehrle retrosheet-sync` to clone the Retrosheet repo.
 - **[Task](https://taskfile.dev)** (optional) — `brew install go-task`, only if you want the `task` shortcuts.
 
@@ -28,10 +28,10 @@ This installs everything declared in [pyproject.toml](../pyproject.toml), includ
 task prereqs
 ```
 
-Installs the non-Python tools some loaders need, via Homebrew:
+Installs the non-Python tools some loaders need:
 
-- **Chadwick `cwtools`** (`cwevent`, etc.) — required by the Retrosheet events loader (wraps `buehrle install-chadwick` → `brew install chadwick`).
-- **duckdb CLI** (optional) — for ad-hoc SQL against the database.
+- **Chadwick `cwtools`** (`cwevent`, etc.) - required by the Retrosheet events loader (runs `buehrle install-chadwick`).
+- **duckdb CLI** (optional) - for ad-hoc SQL against the database. This step uses Homebrew and is skipped if Homebrew isn't installed.
 
 ## Where data lands
 
@@ -63,7 +63,7 @@ The events loader additionally needs the Chadwick `cwtools` binaries (`cwevent`,
 buehrle install-chadwick
 ```
 
-This is a thin wrapper around `brew install chadwick`.
+This downloads the pinned Chadwick release and builds it from source into `~/.local/bin` on every OS, so all machines run the same version. If you previously installed Chadwick with Homebrew, run `brew uninstall chadwick` so the old copy doesn't shadow the new one on `PATH`.
 
 ## First run
 
