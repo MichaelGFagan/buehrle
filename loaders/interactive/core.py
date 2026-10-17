@@ -258,7 +258,7 @@ def menu_items() -> list[MenuItem]:
     return [
         MenuItem('l', 'Load data (status grid)', GRID),
         MenuItem('r', 'Clone / update the Retrosheet repo', RUN, command='retrosheet-sync'),
-        MenuItem('c', 'Install Chadwick tools (Homebrew)', RUN, command='install-chadwick'),
+        MenuItem('c', 'Install Chadwick tools', RUN, command='install-chadwick'),
         MenuItem('d', 'Drop the raw database', RUN, command='drop-db',
                  flags=('--yes',), confirm='Delete the raw DuckDB database? This cannot be undone.',
                  wants_db=True),
