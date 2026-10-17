@@ -1,14 +1,26 @@
 services:
   postgres:
     image: postgres:16
+    # Come back up after a reboot or crash (needed on the always-on home server).
+    restart: unless-stopped
     environment:
       POSTGRES_DB: buehrle_ducklake
       POSTGRES_USER: buehrle
-      POSTGRES_PASSWORD: buehrle
+      # Defaults to the dev password. On a server, set BUEHRLE_POSTGRES_PASSWORD
+      # (and the matching BUEHRLE_DUCKLAKE_CATALOG DSN) before the first
+      # `docker compose up` - Postgres only reads this when the volume is empty.
+      POSTGRES_PASSWORD: ${BUEHRLE_POSTGRES_PASSWORD:-buehrle}
     ports:
-      - "5432:5432"
+      # Localhost only: the catalog is never reachable from the network.
+      - "127.0.0.1:5432:5432"
     volumes:
       - ducklake_catalog:/var/lib/postgresql/data
+    # Lets `docker compose up --wait` block until Postgres accepts connections.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U buehrle -d buehrle_ducklake"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   ducklake_catalog:
