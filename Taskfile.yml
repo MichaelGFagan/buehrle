@@ -30,7 +30,7 @@ tasks:
       - uv sync
 
   prereqs:
-    desc: Install system tools (Chadwick cwtools + optional duckdb CLI) via Homebrew
+    desc: Install system tools (Chadwick cwtools from source + optional duckdb CLI via Homebrew)
     cmds:
       - uv run buehrle install-chadwick
       - cmd: brew install duckdb
@@ -46,9 +46,8 @@ tasks:
         opt()  { if command -v "$1" >/dev/null 2>&1; then echo "  ok    $1"; else echo "  opt   $1 — $2"; fi; }
         echo "Required tools:"
         req uv      "install from https://astral.sh/uv"
-        req git     "install Xcode command-line tools"
-        req brew    "install from https://brew.sh (needed for chadwick/duckdb)"
-        req cwevent "run: task prereqs"
+        req git     "install Xcode command-line tools (macOS) or apt install git (Linux)"
+        req cwevent "run: uv run buehrle install-chadwick"
         echo "Optional tools:"
         opt duckdb  "CLI for ad-hoc SQL — brew install duckdb"
         opt task    "you clearly have it"
