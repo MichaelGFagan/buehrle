@@ -6,5 +6,5 @@ MLB-StatsAPI/
 .clineignore
 .clinerules
 data/ducklake/
-
+deploy/
 .env

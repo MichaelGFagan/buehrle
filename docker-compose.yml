@@ -1,7 +1,7 @@
 services:
   postgres:
     image: postgres:16
-    # Come back up after a reboot or crash (needed on the always-on home server).
+    # Come back up after a reboot or crash.
     restart: unless-stopped
     environment:
       POSTGRES_DB: buehrle_ducklake
