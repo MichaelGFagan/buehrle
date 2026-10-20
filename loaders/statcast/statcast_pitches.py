@@ -26,6 +26,12 @@ COLUMN_RENAMES = {
 
 PRIMARY_KEYS = {'game_pk', 'at_bat_number', 'pitch_number'}
 
+# Savant game-type filter: regular season (R) plus Wild Card (F), Division
+# Series (D), League Championship Series (L), and World Series (W). Spring
+# training (S) and the All-Star Game (A) are excluded. Each row's game_type
+# column distinguishes them.
+GAME_TYPES = 'R|F|D|L|W|'
+
 PIPELINE_NAME = 'statcast_pitches'  # destination schema (== dlt pipeline/dataset name)
 # Status-grid watermark: {table: SQL expression yielding its time dimension}.
 WATERMARKS = {'pitches': 'game_date'}
@@ -37,7 +43,7 @@ def _fetch_range(start_date: datetime.date, end_date: datetime.date):
         'type': 'details',
         'game_date_gt': start_date.strftime('%Y-%m-%d'),
         'game_date_lt': end_date.strftime('%Y-%m-%d'),
-        'hfGT': 'R|',
+        'hfGT': GAME_TYPES,
         'min_pitches': 0,
         'min_results': 0,
         'group_by': 'name',

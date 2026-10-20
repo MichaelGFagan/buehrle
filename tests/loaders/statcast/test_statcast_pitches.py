@@ -29,6 +29,14 @@ def test_fetch_range_returns_arrow_with_renamed_columns():
     assert 'pitcher.1' not in table.column_names
 
 
+@responses.activate
+def test_fetch_range_requests_regular_season_and_playoffs():
+    responses.add(responses.GET, URL, body='game_pk,at_bat_number,pitch_number\n718000,1,1', status=200)
+    sp._fetch_range(datetime.date(2024, 10, 1), datetime.date(2024, 10, 31))
+    game_types = responses.calls[0].request.params['hfGT']
+    assert set(filter(None, game_types.split('|'))) == {'R', 'F', 'D', 'L', 'W'}
+
+
 def _build_pipeline(tmp_path, name='statcast_pitches_test'):
     return dlt.pipeline(
         pipeline_name=name,
